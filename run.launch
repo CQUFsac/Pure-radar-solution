@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Load ROI filter parameters for roi_filter_node -->
+  <rosparam file="$(find roi_filter)/config/roi_params.yaml" command="load" />
+
+  <!-- Load clustering parameters for point_clustering_node -->
+  <rosparam file="$(find point_clustering)/config/point_clustering_params.yaml" command="load" />
+
+  <!-- Start ROI filter node -->
+  <node name="roi_filter_node" pkg="roi_filter" type="roi_filter_node" output="screen" />
+
+  <!-- Start point clustering node -->
+  <node name="point_clustering_node" pkg="point_clustering" type="point_clustering_node" output="screen">
+    <!-- Load ROI parameters into point_clustering_node namespace -->
+    <rosparam file="$(find roi_filter)/config/roi_params.yaml" command="load" ns="point_clustering_node" />
+  </node>
+</launch>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Load ROI filter parameters from YAML config file -->
+  <rosparam file="$(find roi_filter)/config/roi_params.yaml" command="load" />
+  <rosparam file="$(find point_clustering)/config/roi_params.yaml" command="load" />
+
+  <!-- Start ROI filter node -->
+  <node name="roi_filter_node" pkg="roi_filter" type="roi_filter_node" output="screen">
+    <!--
+      Parameters can be overridden from command line, e.g.:
+      roslaunch roi_filter roi_filter.launch roi_xmin:=-30.0 roi_xmax:=30.0
+    -->
+  </node>
+</launch>

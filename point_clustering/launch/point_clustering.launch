@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Load clustering parameters from YAML config file -->
+  <rosparam file="$(find point_clustering)/config/point_clustering_params.yaml" command="load" />
+
+  <!-- Start point cloud clustering node -->
+  <node name="point_clustering_node" pkg="point_clustering" type="point_clustering_node" output="screen">
+    <!--
+      Parameters can be overridden from command line, e.g.:
+      roslaunch point_clustering point_clustering.launch cluster_tolerance:=0.5
+    -->
+  </node>
+</launch>

@@ -1,0 +1,14 @@
+# Point cloud clustering parameters
+# These values are loaded by point_clustering_node via ~* params
+
+point_clustering_node:
+  # Input point cloud topic
+  input_topic: /radar/points_roi
+
+  # Output clustered objects topic
+  output_topic: /radar/clusters
+
+  # Euclidean clustering parameters
+  seedpoint_carDistance_: 1.0
+  point_pointDistance_: 1.5
+  convergence_tolerance_: 0.1
