@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="lidar_cone_detector"
+        type="lidar_cone_detector_node"
+        name="lidar_cone_detector_node"
+        output="screen">
+    <rosparam command="load"
+              file="$(find lidar_cone_detector)/config/clustering.yaml" />
+  </node>
+</launch>
