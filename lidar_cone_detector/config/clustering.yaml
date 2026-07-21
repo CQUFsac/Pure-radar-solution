@@ -1,0 +1,88 @@
+# All numeric values are initial suggestions and must be tuned with rosbag data.
+input_topic: /lidar/non_ground_points
+output_topic: /perception/lidar/cones_raw
+cluster_debug_topic: /lidar/debug/clustered_points
+candidate_debug_topic: /lidar/debug/cone_candidate_points
+positions_debug_topic: /lidar/debug/cone_positions
+queue_size: 1
+publish_debug: true
+
+bands:
+  near:
+    min_range: 0.5
+    max_range: 5.0
+    cluster_tolerance: 0.10
+    min_cluster_size: 4
+    max_cluster_size: 500
+  middle:
+    min_range: 5.0
+    max_range: 10.0
+    cluster_tolerance: 0.15
+    min_cluster_size: 3
+    max_cluster_size: 300
+  far:
+    min_range: 10.0
+    max_range: 15.0
+    cluster_tolerance: 0.22
+    min_cluster_size: 2
+    max_cluster_size: 200
+  very_far:
+    min_range: 15.0
+    max_range: 20.0
+    cluster_tolerance: 0.30
+    min_cluster_size: 2
+    max_cluster_size: 100
+
+features:
+  # LiDAR origin expressed in the input cloud frame. Confirm from TF/extrinsics.
+  lidar_origin_x: 0.0
+  lidar_origin_y: 0.0
+  min_points_for_pca: 5
+  min_points_per_slice: 2
+  bottom_slice_limit: 0.35
+  middle_slice_limit: 0.70
+
+classifier:
+  min_points:
+    near: 4
+    middle: 3
+    far: 2
+    very_far: 2
+  reference_points:
+    near: 8
+    middle: 6
+    far: 4
+    very_far: 3
+  height:
+    hard_min: 0.05
+    preferred_min: 0.15
+    preferred_max: 0.50
+    hard_max: 0.75
+  width:
+    hard_min: 0.02
+    preferred_min: 0.06
+    preferred_max: 0.40
+    hard_max: 0.60
+  depth:
+    hard_min: 0.005
+    preferred_min: 0.02
+    preferred_max: 0.30
+    hard_max: 0.50
+  # Keep disabled until ground_z in the cloud frame is measured reliably.
+  use_ground_check: false
+  expected_ground_z: 0.0
+  use_ring_score: true
+  minimum_structural_score: 0.35
+  strong_confidence_threshold: 0.70
+
+position:
+  # Measure the actual cone radius used by the team before final tuning.
+  nominal_cone_radius: 0.11
+  minimum_cone_radius: 0.04
+  maximum_cone_radius: 0.25
+  measured_radius_weight: 0.70
+  near_surface_quantile: 0.15
+  # If false, z uses the cluster minimum and is less reliable after ground removal.
+  use_fixed_ground_z: false
+  fixed_ground_z: 0.0
+  base_z_offset: 0.0

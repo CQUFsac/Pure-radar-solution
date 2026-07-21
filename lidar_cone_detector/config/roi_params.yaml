@@ -1,0 +1,21 @@
+# ROI filter parameters
+# These values are loaded by roi_filter_node via ~roi_* and ~*/topic params
+
+roi_filter_node:
+  # ROI range in meters (vehicle-forward coordinate system)
+  roi_xmin: -50.0
+  roi_xmax:  50.0
+  roi_ymin: -50.0
+  roi_ymax:  50.0
+  roi_zmin:  -5.0
+  roi_zmax:   5.0
+
+  # Input radar point cloud topic (subscribes to RoboSense rslidar_sdk output)
+  input_topic: /rslidar_points
+
+  # Output topics
+  roi_topic:     /radar/points_roi       # ROI 范围内的点云
+  ground_topic:  /radar/points_ground    # 地面点云（z < ground_z_threshold）
+
+  # Ground point height threshold (points with z below this value are considered ground)
+  ground_z_threshold: -0.5
