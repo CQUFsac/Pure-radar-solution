@@ -58,7 +58,7 @@ ClusterResult[]
         │
         ▼
 /perception/lidar/cones_raw
-lidar_cone_detector/ConeObservationArray
+driverless_msgs/ConeObservationArray
 ```
 
 ## 3. 上游输入要求
@@ -98,7 +98,7 @@ lidar_cone_detector/ConeObservationArray
 
 | 话题 | 类型 | 用途 |
 |---|---|---|
-| `/perception/lidar/cones_raw` | `lidar_cone_detector/ConeObservationArray` | 单帧 LiDAR 锥桶候选 |
+| `/perception/lidar/cones_raw` | `driverless_msgs/ConeObservationArray` | 单帧 LiDAR 锥桶候选 |
 | `/lidar/debug/clustered_points` | `sensor_msgs/PointCloud2` | 所有欧式聚类彩色显示 |
 | `/lidar/debug/cone_candidate_points` | `sensor_msgs/PointCloud2` | 仅显示保留的锥桶候选 |
 | `/lidar/debug/cone_positions` | `geometry_msgs/PoseArray` | 在 RViz 中显示估计位置 |
@@ -240,7 +240,7 @@ src/cone_position_estimator.cpp
 
 ## 6. ConeObservation 消息
 
-`msg/ConeObservation.msg` 保存：
+`driverless_msgs/msg/ConeObservation.msg` 保存：
 
 - Header；
 - 单帧点簇 ID；
@@ -416,7 +416,7 @@ NEW / TENTATIVE / CONFIRMED / LOST / DELETED
 - 距离自适应规则分类；
 - 底部中心修正；
 - 位置协方差；
-- 自定义 ROS 消息；
+- 公共 `driverless_msgs` ROS 消息；
 - 调试点云和位置输出；
 - CMake、package、launch 和 YAML 接口。
 

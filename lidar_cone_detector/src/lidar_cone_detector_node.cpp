@@ -17,8 +17,8 @@
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include "lidar_cone_detector/ConeObservation.h"
-#include "lidar_cone_detector/ConeObservationArray.h"
+#include "driverless_msgs/ConeObservation.h"
+#include "driverless_msgs/ConeObservationArray.h"
 #include "lidar_cone_detector/adaptive_euclidean_clusterer.hpp"
 #include "lidar_cone_detector/cone_cluster_classifier.hpp"
 #include "lidar_cone_detector/cone_position_estimator.hpp"
@@ -266,7 +266,8 @@ public:
             std::max(1, queue_size),
             &LidarConeDetectorNode::cloudCallback,
             this);
-        cone_publisher_ = nh_.advertise<ConeObservationArray>(output_topic, 1);
+        cone_publisher_ =
+            nh_.advertise<driverless_msgs::ConeObservationArray>(output_topic, 1);
         cluster_debug_publisher_ =
             nh_.advertise<sensor_msgs::PointCloud2>(cluster_debug_topic, 1);
         candidate_debug_publisher_ =
@@ -489,7 +490,7 @@ private:
 
         const std::vector<ClusterResult> clusters = clusterer_->cluster(input_cloud);
         std::vector<Detection> detections;
-        ConeObservationArray output;
+        driverless_msgs::ConeObservationArray output;
         output.header = message->header;
         geometry_msgs::PoseArray pose_output;
         pose_output.header = message->header;
@@ -515,7 +516,7 @@ private:
                 continue;
             }
 
-            ConeObservation cone;
+            driverless_msgs::ConeObservation cone;
             cone.header = message->header;
             cone.id = clusters[index].id;
             cone.position.x = detection.position.x;
@@ -528,11 +529,13 @@ private:
                 cone.position_covariance[covariance_index] =
                     detection.position.covariance[covariance_index];
             }
-            cone.source = ConeObservation::SOURCE_LIDAR;
-            cone.semantic_class = ConeObservation::SEMANTIC_UNKNOWN;
+            cone.source = driverless_msgs::ConeObservation::SOURCE_LIDAR;
+            cone.semantic_class =
+                driverless_msgs::ConeObservation::SEMANTIC_UNKNOWN;
             cone.candidate_level =
                 detection.classification.level == ConeCandidateLevel::STRONG ?
-                ConeObservation::CANDIDATE_STRONG : ConeObservation::CANDIDATE_WEAK;
+                driverless_msgs::ConeObservation::CANDIDATE_STRONG :
+                driverless_msgs::ConeObservation::CANDIDATE_WEAK;
             cone.existence_probability = static_cast<float>(
                 detection.classification.confidence);
             cone.lidar_confidence = cone.existence_probability;

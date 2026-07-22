@@ -5,24 +5,12 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(catkin REQUIRED COMPONENTS
+  driverless_msgs
   roscpp
   sensor_msgs
   std_msgs
   geometry_msgs
   pcl_conversions
-  message_generation
-)
-
-add_message_files(
-  FILES
-  ConeObservation.msg
-  ConeObservationArray.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
 )
 
 find_package(PCL REQUIRED COMPONENTS
@@ -35,7 +23,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}_lib
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs geometry_msgs pcl_conversions message_runtime
+  CATKIN_DEPENDS driverless_msgs roscpp sensor_msgs std_msgs geometry_msgs pcl_conversions
 )
 
 include_directories(
@@ -61,7 +49,6 @@ target_link_libraries(${PROJECT_NAME}_lib
   ${PCL_LIBRARIES}
 )
 add_dependencies(${PROJECT_NAME}_lib
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
 
@@ -73,7 +60,6 @@ target_link_libraries(lidar_cone_detector_node
   ${PCL_LIBRARIES}
 )
 add_dependencies(lidar_cone_detector_node
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
 
