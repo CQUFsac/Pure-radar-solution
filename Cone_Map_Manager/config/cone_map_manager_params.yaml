@@ -1,0 +1,12 @@
+# Cone Map Manager Parameters
+
+# IMU subscriber configuration
+imu_topic: "/imu/data"
+imu_queue_size: 10
+
+# LiDAR cone detection subscriber configuration
+lidar_cones_topic: "/perception/lidar/cones_raw"
+lidar_cones_queue_size: 5
+
+# imu采样时间间隔
+imu_sampling_interval: 0.01  # seconds

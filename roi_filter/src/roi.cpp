@@ -1,4 +1,4 @@
-“”“
+/*
     对脏点云数据进行 ROI（Region of Interest）过滤和地面点提取的 ROS 节点。
     处理结果：
       1. ROI 点云：只保留指定 ROI 范围内的点云数据，发布到 roi_topic
@@ -6,7 +6,7 @@
     ROI 形状为长方形，及保留车辆前方的点云数据。
     
     使用 RsPointXYZIRT 点类型，保留 x, y, z, intensity, ring, timestamp 所有字段。
-”“”
+*/
 
 
 #include <ros/ros.h>
