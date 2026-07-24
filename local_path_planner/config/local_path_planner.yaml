@@ -1,0 +1,112 @@
+input_topic: /perception/lidar/cones_raw
+output_topic: /planning/local_path
+debug_topic: /planning/debug/path_markers
+odometry_topic: /odometry/filtered
+confidence_topic: /planning/path_confidence
+status_topic: /planning/path_status
+expected_frame: base_link
+queue_size: 1
+publish_debug: true
+min_input_cones: 4
+tf_lookup_timeout: 0.03
+input_timeout: 0.35
+watchdog_rate: 10.0
+
+roi:
+  min_x: 0.3
+  max_x: 10.0
+  max_abs_y: 5.0
+  min_confidence: 0.35
+  min_cone_separation: 0.08
+  require_confirmed: false
+  unconfirmed_confidence_scale: 0.75
+
+odometry:
+  max_age: 0.25
+  buffer_duration: 2.0
+  reset_translation: 2.0
+  reset_yaw_deg: 60.0
+
+history:
+  enabled: true
+  max_age: 0.60
+  fallback_enabled: true
+  fallback_max_age: 0.35
+  fallback_max_frames: 2
+  fallback_confidence_decay: 0.65
+
+# Initial values. This fallback is allowed only for a short time and must use
+# motion-compensated history; it is not permission to drive indefinitely blind.
+single_side:
+  enabled: true
+  expected_track_width: 3.0
+  min_boundary_offset: 0.65
+  max_boundary_offset: 3.5
+  max_center_reference_distance: 1.25
+  min_forward_x: 0.05
+  max_forward_x: 12.0
+  min_point_spacing: 0.25
+  min_virtual_points: 1
+  confidence_scale: 0.55
+  max_age: 1.2
+  max_frames: 12
+
+edge:
+  use_delaunay: true
+  fallback_to_pairwise: true
+  min_delaunay_candidates: 3
+  min_width: 1.5
+  max_width: 4.5
+  expected_width: 2.5
+  max_longitudinal_offset: 1.5
+  min_midpoint_x: 0.3
+  max_reference_distance: 1.8
+  width_cost_weight: 1.0
+  longitudinal_cost_weight: 0.6
+  confidence_cost_weight: 0.8
+  reference_cost_weight: 1.0
+  max_edges_per_cone: 4
+
+search:
+  start_min_distance: 0.5
+  start_max_distance: 3.5
+  max_start_heading_deg: 50.0
+  min_step_distance: 0.4
+  max_step_distance: 3.0
+  max_gap_step_distance: 6.5
+  expected_step_distance: 2.0
+  max_turn_angle_deg: 50.0
+  max_gap_turn_angle_deg: 100.0
+  max_path_length: 10.0
+  max_reference_distance: 1.8
+  min_midpoints: 3
+  max_midpoints: 10
+  max_gap_bridges: 1
+  beam_width: 24
+  edge_cost_weight: 1.0
+  heading_cost_weight: 1.5
+  spacing_cost_weight: 0.5
+  history_cost_weight: 1.2
+  reused_cone_penalty: 0.4
+  progress_reward_weight: 0.25
+  gap_bridge_penalty: 2.0
+  gap_confidence_scale: 0.70
+
+smoother:
+  use_cubic_spline: true
+  min_input_spacing: 0.1
+  sample_spacing: 0.2
+  spline_tension: 0.25
+  max_spline_deviation: 0.45
+  smoothing_passes: 2
+
+validator:
+  min_path_points: 8
+  min_path_length: 2.0
+  min_forward_progress: 2.0
+  min_path_confidence: 0.35
+  max_point_spacing: 0.6
+  max_heading_change_deg: 45.0
+  max_abs_curvature: 1.5
+  max_curvature_change: 1.2
+  min_cone_clearance: 0.35

@@ -1,0 +1,37 @@
+input_path_topic: /planning/local_path
+input_path_status_topic: /planning/path_status
+input_odom_topic: /odometry/filtered
+output_cmd_topic: /fssim/cmd
+output_status_topic: /fssim_path_controller/status
+
+control_rate: 20.0
+odometry_timeout: 1.0
+path_timeout: 0.60
+path_freshness_timeout: 0.25
+degraded_speed_scale: 0.30
+
+wheelbase: 1.53
+steering_sign: 1.0
+max_steer: 0.40
+max_steer_rate: 0.80
+steering_filter: 0.25
+
+lookahead_distance: 2.0
+min_lookahead_distance: 1.15
+max_lookahead_distance: 2.40
+lookahead_speed_gain: 0.12
+lookahead_curvature_reduction: 0.75
+lookahead_filter: 0.70
+
+cruise_speed: 3.0
+minimum_corner_speed: 1.0
+speed_kp: 0.08
+drive_feedforward: 0.04
+max_drive_command: 0.40
+max_brake_command: -0.30
+
+# Only used for a live cone-pair gap, not for sensor/TF failures.
+creep:
+  max_distance: 1.50
+  max_time: 2.50
+  path_extension: 1.20
