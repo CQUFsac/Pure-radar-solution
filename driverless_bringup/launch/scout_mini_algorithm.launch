@@ -1,0 +1,26 @@
+<launch>
+  <!--
+    External prerequisites:
+      /lidar/non_ground_points  sensor_msgs/PointCloud2
+      /odometry/filtered       nav_msgs/Odometry
+      odom -> base_link        published by exactly one EKF
+
+    Start rslidar_sdk, ground segmentation, CH110, SCOUT driver and
+    robot_localization in their hardware launch files before this launch.
+  -->
+  <arg name="start_detector" default="true" />
+  <arg name="start_planner" default="true" />
+  <arg name="start_controller" default="true" />
+
+  <group if="$(arg start_detector)">
+    <include file="$(find lidar_cone_detector)/launch/lidar_cone_detector.launch" />
+  </group>
+
+  <group if="$(arg start_planner)">
+    <include file="$(find local_path_planner)/launch/local_path_planner.launch" />
+  </group>
+
+  <group if="$(arg start_controller)">
+    <include file="$(find scout_path_controller)/launch/scout_path_controller.launch" />
+  </group>
+</launch>

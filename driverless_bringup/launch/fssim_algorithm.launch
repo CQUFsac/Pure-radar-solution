@@ -1,0 +1,20 @@
+<launch>
+  <!--
+    External simulator adapter prerequisites:
+      /perception/lidar/cones_raw  driverless_msgs/ConeObservationArray
+      /odometry/filtered           nav_msgs/Odometry
+
+    This file deliberately does not start FSSIM, cone conversion, odometry
+    bridges, or RViz.
+  -->
+  <arg name="start_planner" default="true" />
+  <arg name="start_controller" default="true" />
+
+  <group if="$(arg start_planner)">
+    <include file="$(find local_path_planner)/launch/local_path_planner.launch" />
+  </group>
+
+  <group if="$(arg start_controller)">
+    <include file="$(find fssim_path_controller)/launch/fssim_path_controller.launch" />
+  </group>
+</launch>
