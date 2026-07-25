@@ -1,0 +1,20 @@
+<launch>
+  <arg name="input_topic" default="/perception/lidar/cones_raw" />
+  <arg name="odometry_topic" default="/odometry/filtered" />
+  <arg name="output_topic" default="/planning/local_path" />
+  <arg name="expected_frame" default="base_link" />
+  <arg name="publish_debug" default="true" />
+
+  <node pkg="local_path_planner"
+        type="local_path_planner_node"
+        name="local_path_planner"
+        output="screen">
+    <rosparam command="load"
+              file="$(find local_path_planner)/config/local_path_planner.yaml" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="odometry_topic" value="$(arg odometry_topic)" />
+    <param name="output_topic" value="$(arg output_topic)" />
+    <param name="expected_frame" value="$(arg expected_frame)" />
+    <param name="publish_debug" value="$(arg publish_debug)" />
+  </node>
+</launch>

@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="fssim_path_controller"
+        type="fssim_path_controller_node"
+        name="fssim_path_controller"
+        output="screen">
+    <rosparam command="load"
+              file="$(find fssim_path_controller)/config/controller.yaml" />
+  </node>
+</launch>
