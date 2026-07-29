@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="Cone_Map_Manager"
+        type="cone_map_manager_node"
+        name="cone_map_manager_node"
+        output="screen">
+    <rosparam command="load"
+              file="$(find Cone_Map_Manager)/config/cone_map_manager_params.yaml" />
+  </node>
+</launch>
