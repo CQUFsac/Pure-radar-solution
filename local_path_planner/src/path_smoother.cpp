@@ -28,44 +28,106 @@ double normalizeAngle(double angle)
     return angle;
 }
 
-Point2D cubicPoint(
-    const Point2D& first,
+std::vector<double> naturalSecondDerivatives(
+    const std::vector<double>& knots,
+    const std::vector<Point2D>& points,
+    bool use_x)
+{
+    const std::size_t count = points.size();
+    std::vector<double> lower(count, 0.0);
+    std::vector<double> diagonal(count, 1.0);
+    std::vector<double> upper(count, 0.0);
+    std::vector<double> right_hand_side(count, 0.0);
+    std::vector<double> result(count, 0.0);
+    if (count < 3U || knots.size() != count)
+    {
+        return result;
+    }
+
+    const auto coordinate = [&](std::size_t index)
+    {
+        return use_x ? points[index].x : points[index].y;
+    };
+    for (std::size_t index = 1U; index + 1U < count; ++index)
+    {
+        const double previous_step = knots[index] - knots[index - 1U];
+        const double next_step = knots[index + 1U] - knots[index];
+        if (previous_step < 1.0e-6 || next_step < 1.0e-6)
+        {
+            continue;
+        }
+        lower[index] = previous_step;
+        diagonal[index] = 2.0 * (previous_step + next_step);
+        upper[index] = next_step;
+        right_hand_side[index] = 6.0 * (
+            (coordinate(index + 1U) - coordinate(index)) / next_step -
+            (coordinate(index) - coordinate(index - 1U)) / previous_step);
+    }
+
+    for (std::size_t index = 1U; index < count; ++index)
+    {
+        const double divisor = std::max(1.0e-9, diagonal[index - 1U]);
+        const double factor = lower[index] / divisor;
+        diagonal[index] -= factor * upper[index - 1U];
+        right_hand_side[index] -= factor * right_hand_side[index - 1U];
+    }
+    result.back() = right_hand_side.back() /
+        std::max(1.0e-9, diagonal.back());
+    for (std::size_t index = count - 1U; index-- > 0U;)
+    {
+        result[index] =
+            (right_hand_side[index] - upper[index] * result[index + 1U]) /
+            std::max(1.0e-9, diagonal[index]);
+    }
+    return result;
+}
+
+double naturalSplineCoordinate(
+    double start_value,
+    double end_value,
+    double start_second_derivative,
+    double end_second_derivative,
+    double segment_length,
+    double ratio)
+{
+    const double start_weight = 1.0 - ratio;
+    const double end_weight = ratio;
+    const double correction = segment_length * segment_length / 6.0;
+    return start_weight * start_value + end_weight * end_value + correction * (
+        (start_weight * start_weight * start_weight - start_weight) *
+            start_second_derivative +
+        (end_weight * end_weight * end_weight - end_weight) *
+            end_second_derivative);
+}
+
+Point2D boundedNaturalSplinePoint(
     const Point2D& start,
     const Point2D& end,
-    const Point2D& last,
+    double start_second_x,
+    double end_second_x,
+    double start_second_y,
+    double end_second_y,
+    double segment_length,
     double ratio,
-    double tension,
     double max_deviation)
 {
-    const double tangent_scale = 0.5 * (1.0 -
-        std::max(0.0, std::min(1.0, tension)));
-    const Point2D start_tangent{
-        tangent_scale * (end.x - first.x),
-        tangent_scale * (end.y - first.y)};
-    const Point2D end_tangent{
-        tangent_scale * (last.x - start.x),
-        tangent_scale * (last.y - start.y)};
-
-    const double ratio_squared = ratio * ratio;
-    const double ratio_cubed = ratio_squared * ratio;
-    const double h00 = 2.0 * ratio_cubed - 3.0 * ratio_squared + 1.0;
-    const double h10 = ratio_cubed - 2.0 * ratio_squared + ratio;
-    const double h01 = -2.0 * ratio_cubed + 3.0 * ratio_squared;
-    const double h11 = ratio_cubed - ratio_squared;
-
     Point2D curved;
-    curved.x = h00 * start.x + h10 * start_tangent.x +
-        h01 * end.x + h11 * end_tangent.x;
-    curved.y = h00 * start.y + h10 * start_tangent.y +
-        h01 * end.y + h11 * end_tangent.y;
+    curved.x = naturalSplineCoordinate(
+        start.x, end.x, start_second_x, end_second_x, segment_length, ratio);
+    curved.y = naturalSplineCoordinate(
+        start.y, end.y, start_second_y, end_second_y, segment_length, ratio);
 
-    Point2D linear;
-    linear.x = start.x + ratio * (end.x - start.x);
-    linear.y = start.y + ratio * (end.y - start.y);
+    const Point2D linear{
+        start.x + ratio * (end.x - start.x),
+        start.y + ratio * (end.y - start.y)};
     const double deviation = pointDistance(linear, curved);
-    if (max_deviation > 0.0 && deviation > max_deviation)
+    if (max_deviation > 0.0 && deviation > 1.0e-9)
     {
-        const double scale = max_deviation / deviation;
+        // tanh is a smooth limiter.  A hard clip produces another curvature
+        // corner exactly where the safety limit becomes active.
+        const double limited_deviation = max_deviation * std::tanh(
+            deviation / max_deviation);
+        const double scale = limited_deviation / deviation;
         curved.x = linear.x + scale * (curved.x - linear.x);
         curved.y = linear.y + scale * (curved.y - linear.y);
     }
@@ -154,25 +216,36 @@ std::vector<PathPoint> PathSmoother::smooth(
     std::vector<Point2D> dense;
     if (config_.use_cubic_spline && cleaned.size() >= 3U)
     {
+        std::vector<double> knots(cleaned.size(), 0.0);
+        for (std::size_t index = 1U; index < cleaned.size(); ++index)
+        {
+            // Chord-length parameterisation is less likely to overshoot when
+            // cone-pair spacing is uneven than a simple point index.
+            knots[index] = knots[index - 1U] +
+                pointDistance(cleaned[index - 1U], cleaned[index]);
+        }
+        const std::vector<double> second_x = naturalSecondDerivatives(
+            knots, cleaned, true);
+        const std::vector<double> second_y = naturalSecondDerivatives(
+            knots, cleaned, false);
         for (std::size_t segment = 0U; segment + 1U < cleaned.size(); ++segment)
         {
-            const Point2D& first = segment == 0U ?
-                cleaned[segment] : cleaned[segment - 1U];
             const Point2D& start = cleaned[segment];
             const Point2D& end = cleaned[segment + 1U];
-            const Point2D& last = segment + 2U < cleaned.size() ?
-                cleaned[segment + 2U] : cleaned[segment + 1U];
+            const double segment_length = knots[segment + 1U] - knots[segment];
             const int samples = std::max(3, static_cast<int>(std::ceil(
-                pointDistance(start, end) / config_.sample_spacing * 3.0)));
+                segment_length / config_.sample_spacing * 3.0)));
             for (int sample = 0; sample < samples; ++sample)
             {
-                dense.push_back(cubicPoint(
-                    first,
+                dense.push_back(boundedNaturalSplinePoint(
                     start,
                     end,
-                    last,
+                    second_x[segment],
+                    second_x[segment + 1U],
+                    second_y[segment],
+                    second_y[segment + 1U],
+                    segment_length,
                     static_cast<double>(sample) / static_cast<double>(samples),
-                    config_.spline_tension,
                     config_.max_spline_deviation));
             }
         }

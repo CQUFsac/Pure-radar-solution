@@ -1,14 +1,17 @@
-<?xml version="1.0"?>
 <launch>
-  <!-- Load ROI filter parameters from YAML config file -->
-  <rosparam file="$(find roi_filter)/config/roi_params.yaml" command="load" />
-  <rosparam file="$(find point_clustering)/config/roi_params.yaml" command="load" />
+  <arg name="input_topic" default="/rslidar_points" />
+  <arg name="non_ground_topic" default="/lidar/non_ground_points" />
+  <arg name="ground_z_threshold" default="-0.25" />
 
-  <!-- Start ROI filter node -->
-  <node name="roi_filter_node" pkg="roi_filter" type="roi_filter_node" output="screen">
-    <!--
-      Parameters can be overridden from command line, e.g.:
-      roslaunch roi_filter roi_filter.launch roi_xmin:=-30.0 roi_xmax:=30.0
-    -->
+  <node name="roi_filter_node"
+        pkg="roi_filter"
+        type="roi_filter_node"
+        output="screen">
+    <rosparam command="load"
+              file="$(find roi_filter)/config/roi_params.yaml" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="non_ground_topic" value="$(arg non_ground_topic)" />
+    <param name="ground_z_threshold"
+           value="$(arg ground_z_threshold)" />
   </node>
 </launch>

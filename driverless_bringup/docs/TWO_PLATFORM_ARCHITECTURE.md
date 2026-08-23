@@ -21,11 +21,7 @@ Until the tracker is available, the planner may subscribe directly to
 ## Profile A: SCOUT MINI
 
 ```text
-SCOUT wheel odometry + CH110 IMU
--> robot_localization (two_d_mode)
--> /odometry/filtered
-
-/planning/local_path + /odometry/filtered
+/planning/local_path
 -> scout_path_controller
 -> geometry_msgs/Twist
 -> /cmd_vel
@@ -34,8 +30,9 @@ SCOUT wheel odometry + CH110 IMU
 The controller uses `angular.z = linear.x * curvature`. It does not expose a
 front-wheel steering angle.
 
-Only one node may publish `odom -> base_link`. Cone scan matching or cone SLAM
-may later publish `map -> odom`, but never simultaneously.
+The current first-running profile sets `use_odometry: false`; neither `/odom`
+nor `/odometry/filtered` is a required input. Both interfaces and the optional
+motion-compensated history code remain reserved for later use.
 
 ## Profile B: FSSIM and future Formula Student car
 
@@ -100,7 +97,6 @@ workspace:
 ```text
 fase_ws_sim/src
 ├── lidar_cone_detector/       shared perception, planning and controllers
-├── estimation/               teammate localization and mapping
 ├── cone_car_core/             teammate common messages
 ├── scout_base/                SCOUT ROS driver and messages
 ├── ugv_sdk/                   SCOUT CAN/serial SDK
@@ -115,10 +111,16 @@ bash src/lidar_cone_detector/driverless_bringup/scripts/build_workspace_profile.
 bash src/lidar_cone_detector/driverless_bringup/scripts/build_workspace_profile.sh fssim
 ```
 
-The script keeps `estimation/lidar_cone_detector` disabled because it has the
-same ROS package name as the maintained detector. It does not launch both
-vehicle controllers or both TF publishers.
-
 The existing generic `serial_imu` package is not assumed to be a CH110 driver.
 Confirm the CH110 protocol, baud rate, message format and timestamp behavior
 before adding it to the SCOUT profile.
+
+The old `estimation/` repository is intentionally excluded. A new localization
+and mapping module may later connect through these reserved interfaces:
+
+```text
+/odom or /odometry/filtered   nav_msgs/Odometry
+TF odom -> base_link         exactly one publisher
+TF map -> odom               exactly one publisher
+/perception/cones            driverless_msgs/ConeObservationArray
+```

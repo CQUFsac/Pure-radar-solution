@@ -1,2 +1,7 @@
 .DS_Store
 .claude/
+
+# Local snapshots and temporary source copies must not enter the catkin workspace.
+backup/
+*.bak
+*_before_*

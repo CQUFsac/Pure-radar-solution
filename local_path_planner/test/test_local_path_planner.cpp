@@ -69,6 +69,106 @@ TEST(LocalPathPlanner, RejectsSingleSideConeSequence)
     EXPECT_TRUE(edge_generator.generate(cones).empty());
 }
 
+TEST(LocalPathPlanner, SemanticPairsAreOneToOne)
+{
+    std::vector<ConePoint> cones;
+    cones.push_back(makeCone(0U, 2.0, 1.5));
+    cones.push_back(makeCone(1U, 2.0, -1.5));
+    cones.push_back(makeCone(2U, 4.0, 1.5));
+    cones.push_back(makeCone(3U, 4.0, -1.5));
+    cones[0].semantic_class = SEMANTIC_BLUE;
+    cones[1].semantic_class = SEMANTIC_YELLOW;
+    cones[2].semantic_class = SEMANTIC_BLUE;
+    cones[3].semantic_class = SEMANTIC_YELLOW;
+
+    CandidateEdgeGeneratorConfig config;
+    config.use_delaunay = false;
+    config.fallback_to_pairwise = true;
+    config.use_semantic_pairing = true;
+    config.use_semantic_boundary_recovery = false;
+    config.min_width = 1.0;
+    config.max_width = 6.0;
+    config.expected_width = 3.0;
+    config.max_longitudinal_offset = 3.0;
+    config.max_edges_per_cone = 6;
+    CandidateEdgeGenerator edge_generator(config);
+    const std::vector<CandidateEdge> edges = edge_generator.generate(cones);
+
+    ASSERT_EQ(2U, edges.size());
+    std::vector<int> uses(cones.size(), 0);
+    for (const CandidateEdge& edge : edges)
+    {
+        ++uses[edge.first_cone_index];
+        ++uses[edge.second_cone_index];
+    }
+    for (int count : uses)
+    {
+        EXPECT_EQ(1, count);
+    }
+}
+
+TEST(LocalPathPlanner, SemanticSearchMayKeepPairingAlternatives)
+{
+    std::vector<ConePoint> cones;
+    cones.push_back(makeCone(0U, 2.0, 1.5));
+    cones.push_back(makeCone(1U, 2.0, -1.5));
+    cones.push_back(makeCone(2U, 4.0, 1.5));
+    cones.push_back(makeCone(3U, 4.0, -1.5));
+    cones[0].semantic_class = SEMANTIC_BLUE;
+    cones[1].semantic_class = SEMANTIC_YELLOW;
+    cones[2].semantic_class = SEMANTIC_BLUE;
+    cones[3].semantic_class = SEMANTIC_YELLOW;
+
+    CandidateEdgeGeneratorConfig config;
+    config.use_delaunay = false;
+    config.fallback_to_pairwise = true;
+    config.use_semantic_pairing = true;
+    config.enforce_semantic_one_to_one = false;
+    config.use_semantic_boundary_recovery = false;
+    config.min_width = 1.0;
+    config.max_width = 6.0;
+    config.expected_width = 3.0;
+    config.max_longitudinal_offset = 3.0;
+    config.max_edges_per_cone = 6;
+    CandidateEdgeGenerator edge_generator(config);
+
+    EXPECT_GT(edge_generator.generate(cones).size(), 2U);
+}
+
+TEST(LocalPathPlanner, ReferenceCanStartAVisibleHairpinSideways)
+{
+    std::vector<CandidateEdge> edges(3U);
+    edges[0].midpoint = Point2D{-0.2, 1.0};
+    edges[1].midpoint = Point2D{-1.0, 2.0};
+    edges[2].midpoint = Point2D{-2.0, 2.5};
+    for (std::size_t index = 0U; index < edges.size(); ++index)
+    {
+        edges[index].cost = 0.1;
+        edges[index].confidence = 0.9;
+        edges[index].first_cone_id = static_cast<std::uint32_t>(2U * index);
+        edges[index].second_cone_id =
+            static_cast<std::uint32_t>(2U * index + 1U);
+    }
+
+    std::vector<Point2D> reference;
+    reference.push_back(Point2D{0.0, 0.0});
+    reference.push_back(Point2D{-0.2, 1.0});
+    reference.push_back(Point2D{-1.0, 2.0});
+    reference.push_back(Point2D{-2.0, 2.5});
+
+    PathSearcherConfig config;
+    config.min_midpoints = 3;
+    config.max_start_heading = 2.10;
+    config.min_start_forward_x = -1.0;
+    config.allow_reference_lateral_start = true;
+    config.max_turn_angle = 1.40;
+    config.max_reference_distance = 0.6;
+    PathSearcher searcher(config);
+    const SearchResult result = searcher.search(edges, reference);
+
+    EXPECT_TRUE(result.success) << result.reason;
+}
+
 TEST(LocalPathPlanner, RecoversCenterFromOneBoundary)
 {
     std::vector<Point2D> reference;
@@ -184,6 +284,58 @@ TEST(LocalPathPlanner, ReferencePathRejectsRemoteCandidate)
     EXPECT_TRUE(edge_generator.generate(cones, reference).empty());
 }
 
+TEST(LocalPathPlanner, SoftReferenceGateKeepsHairpinRecoveryCandidate)
+{
+    std::vector<ConePoint> cones;
+    cones.push_back(makeCone(0U, 3.0, 4.25));
+    cones.push_back(makeCone(1U, 3.0, 1.75));
+
+    std::vector<Point2D> reference;
+    reference.push_back(Point2D{0.0, 0.0});
+    reference.push_back(Point2D{8.0, 0.0});
+
+    CandidateEdgeGeneratorConfig config;
+    config.max_reference_distance = 0.8;
+    config.hard_reference_gate = false;
+    CandidateEdgeGenerator edge_generator(config);
+    EXPECT_FALSE(edge_generator.generate(cones, reference).empty());
+}
+
+TEST(LocalPathPlanner, MissionHintSelectsRequestedSkidpadBranch)
+{
+    std::vector<CandidateEdge> edges(5U);
+    edges[0].midpoint = Point2D{2.0, 0.0};
+    edges[1].midpoint = Point2D{4.0, 1.0};
+    edges[2].midpoint = Point2D{6.0, 2.0};
+    edges[3].midpoint = Point2D{4.0, -1.0};
+    edges[4].midpoint = Point2D{6.0, -2.0};
+    for (std::size_t index = 0U; index < edges.size(); ++index)
+    {
+        edges[index].cost = 0.1;
+        edges[index].confidence = 0.9;
+        edges[index].first_cone_id =
+            static_cast<std::uint32_t>(2U * index);
+        edges[index].second_cone_id =
+            static_cast<std::uint32_t>(2U * index + 1U);
+    }
+
+    PathSearcherConfig config;
+    config.min_midpoints = 3;
+    config.max_midpoints = 4;
+    config.max_path_length = 8.0;
+    PathSearcher searcher(config);
+
+    const SearchResult left = searcher.search(
+        edges, std::vector<Point2D>(), 1);
+    const SearchResult right = searcher.search(
+        edges, std::vector<Point2D>(), -1);
+
+    ASSERT_TRUE(left.success) << left.reason;
+    ASSERT_TRUE(right.success) << right.reason;
+    EXPECT_GT(left.midpoints.back().y, 0.5);
+    EXPECT_LT(right.midpoints.back().y, -0.5);
+}
+
 TEST(LocalPathPlanner, ValidatorRejectsPathThroughCone)
 {
     std::vector<PathPoint> path;
@@ -229,3 +381,9 @@ TEST(LocalPathPlanner, SmootherProducesFiniteGeometry)
 
 }  // namespace
 }  // namespace local_path_planner
+
+int main(int argc, char** argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

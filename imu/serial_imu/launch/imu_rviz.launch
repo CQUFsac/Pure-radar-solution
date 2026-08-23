@@ -1,6 +1,4 @@
-<?xml version="1.0"?>
 <launch>
-	<node pkg="serial_imu" name="HI226" type="serial_imu" />
-	<node pkg="rviz" name="rviz_hi226" type="rviz" />
-
+  <include file="$(find serial_imu)/launch/imu_msg.launch" />
+  <node pkg="rviz" name="imu_rviz" type="rviz" />
 </launch>

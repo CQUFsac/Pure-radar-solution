@@ -1,0 +1,20 @@
+<launch>
+  <arg name="config"
+       default="$(find scout_mission_manager)/config/acceleration.yaml" />
+  <arg name="cone_topic" default="/perception/lidar/cones_raw" />
+  <arg name="imu_topic" default="/imu/data" />
+  <arg name="approach_speed" default="0.20" />
+  <arg name="run_speed" default="0.30" />
+
+  <node pkg="scout_mission_manager"
+        type="scout_mission_manager_node"
+        name="scout_mission_manager"
+        output="screen">
+    <rosparam command="load" file="$(arg config)" />
+    <param name="cone_topic" value="$(arg cone_topic)" />
+    <param name="imu_topic" value="$(arg imu_topic)" />
+    <param name="acceleration/approach_speed"
+           value="$(arg approach_speed)" />
+    <param name="acceleration/run_speed" value="$(arg run_speed)" />
+  </node>
+</launch>

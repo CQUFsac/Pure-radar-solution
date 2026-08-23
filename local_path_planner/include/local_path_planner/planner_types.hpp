@@ -8,6 +8,15 @@
 namespace local_path_planner
 {
 
+enum ConeSemantic : std::uint8_t
+{
+    SEMANTIC_UNKNOWN = 0U,
+    SEMANTIC_BLUE = 1U,
+    SEMANTIC_YELLOW = 2U,
+    SEMANTIC_SMALL_ORANGE = 3U,
+    SEMANTIC_BIG_ORANGE = 4U
+};
+
 struct Point2D
 {
     double x = 0.0;
@@ -20,6 +29,7 @@ struct ConePoint
     Point2D position;
     double confidence = 0.0;
     bool confirmed = false;
+    std::uint8_t semantic_class = SEMANTIC_UNKNOWN;
 };
 
 struct CandidateEdge
@@ -32,6 +42,13 @@ struct CandidateEdge
     double width = 0.0;
     double cost = 0.0;
     double confidence = 0.0;
+    bool virtual_from_boundary = false;
+    bool has_left_boundary = false;
+    bool has_right_boundary = false;
+    std::uint32_t left_cone_id = 0U;
+    std::uint32_t right_cone_id = 0U;
+    Point2D left_boundary;
+    Point2D right_boundary;
 };
 
 struct SearchResult

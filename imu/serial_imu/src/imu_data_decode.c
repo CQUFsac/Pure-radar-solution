@@ -29,7 +29,9 @@ static void on_data_received(packet_t *pkt)
 {
 	int temp[3] = {0};
 	int offset = 0;
+	int parsed_gw_count = 0;
 	uint8_t *p = pkt->buf;
+	receive_gwsol.tag = 0;
 
 	if(pkt->type != 0xA5)
 	{
@@ -43,7 +45,7 @@ static void on_data_received(packet_t *pkt)
 		{
 		case kItemID:
 			bitmap |= BIT_VALID_ID;
-			receive_imusol.id = p[1];
+			receive_imusol.id = p[offset + 1];
 			offset += 2;
 			break;
 
@@ -95,27 +97,51 @@ static void on_data_received(packet_t *pkt)
 			break; 
 
 		case KItemIMUSOL:
+			if (offset + 76 > pkt->payload_len)
+			{
+				offset = pkt->payload_len;
+				break;
+			}
 			bitmap = BIT_VALID_ALL;
 			receive_imusol.id =p[offset + 1];
-			memcpy(&receive_imusol.times, p + 8, sizeof(int)); 	
-			memcpy(receive_imusol.acc, p + 12, sizeof(float) * 16);
+			memcpy(&receive_imusol.times, p + offset + 8, sizeof(int));
+			memcpy(receive_imusol.acc, p + offset + 12, sizeof(float) * 3);
+			memcpy(receive_imusol.gyr, p + offset + 24, sizeof(float) * 3);
+			memcpy(receive_imusol.mag, p + offset + 36, sizeof(float) * 3);
+			memcpy(receive_imusol.eul, p + offset + 48, sizeof(float) * 3);
+			memcpy(receive_imusol.quat, p + offset + 60, sizeof(float) * 4);
 			offset += 76;
 			break;
 
 		case KItemGWSOL:
+			if (offset + 8 > pkt->payload_len)
+			{
+				offset = pkt->payload_len;
+				break;
+			}
 			receive_gwsol.tag = p[offset];
-			receive_gwsol.gw_id = p[offset + 1]; 
-			receive_gwsol.n = p[offset + 2];
+			receive_gwsol.gw_id = p[offset + 1];
+			receive_gwsol.n = p[offset + 2] > MAX_LENGTH ?
+				MAX_LENGTH : p[offset + 2];
 			offset += 8;
-			for (int i = 0; i < receive_gwsol.n; i++)
+			parsed_gw_count = 0;
+			for (int i = 0;
+				 i < receive_gwsol.n && offset + 76 <= pkt->payload_len;
+				 i++)
 			{
 				bitmap = BIT_VALID_ALL;
 				receive_gwsol.receive_imusol[i].tag = p[offset];
 				receive_gwsol.receive_imusol[i].id = p[offset + 1];
-				memcpy(&receive_gwsol.receive_imusol[i].acc, p + offset + 12 , sizeof(float) * 16);
+				memcpy(receive_gwsol.receive_imusol[i].acc, p + offset + 12, sizeof(float) * 3);
+				memcpy(receive_gwsol.receive_imusol[i].gyr, p + offset + 24, sizeof(float) * 3);
+				memcpy(receive_gwsol.receive_imusol[i].mag, p + offset + 36, sizeof(float) * 3);
+				memcpy(receive_gwsol.receive_imusol[i].eul, p + offset + 48, sizeof(float) * 3);
+				memcpy(receive_gwsol.receive_imusol[i].quat, p + offset + 60, sizeof(float) * 4);
 
 				offset += 76;
+				parsed_gw_count++;
 			}
+			receive_gwsol.n = parsed_gw_count;
 			break;
 
 		default:

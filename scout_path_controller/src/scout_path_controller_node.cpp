@@ -3,6 +3,8 @@
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
 
 #include <algorithm>
@@ -25,8 +27,24 @@ public:
       1,
       &ScoutPathController::pathStatusCallback,
       this);
-    odom_sub_ = nh_.subscribe(
-      input_odom_topic_, 5, &ScoutPathController::odometryCallback, this);
+    if (use_odometry_)
+    {
+      odom_sub_ = nh_.subscribe(
+        input_odom_topic_, 5, &ScoutPathController::odometryCallback, this);
+    }
+    if (use_mission_interface_)
+    {
+      mission_stop_sub_ = nh_.subscribe(
+        mission_stop_topic_,
+        1,
+        &ScoutPathController::missionStopCallback,
+        this);
+      mission_speed_limit_sub_ = nh_.subscribe(
+        mission_speed_limit_topic_,
+        1,
+        &ScoutPathController::missionSpeedLimitCallback,
+        this);
+    }
 
     command_pub_ = nh_.advertise<geometry_msgs::Twist>(
       output_cmd_topic_, 1);
@@ -69,6 +87,16 @@ private:
       "output_status_topic",
       output_status_topic_,
       "/scout_path_controller/status");
+    private_nh_.param("use_odometry", use_odometry_, false);
+    private_nh_.param(
+      "mission/use_interface", use_mission_interface_, false);
+    private_nh_.param<std::string>(
+      "mission/stop_topic", mission_stop_topic_, "/mission/stop");
+    private_nh_.param<std::string>(
+      "mission/speed_limit_topic",
+      mission_speed_limit_topic_,
+      "/mission/speed_limit");
+    private_nh_.param("mission/timeout", mission_timeout_, 0.50);
 
     private_nh_.param("control_rate", control_rate_, 20.0);
     private_nh_.param("odometry_timeout", odometry_timeout_, 0.30);
@@ -135,7 +163,7 @@ private:
     path_ = *message;
     has_path_ = true;
     last_path_time_ = ros::Time::now();
-    if (has_odometry_)
+    if (use_odometry_ && has_odometry_)
     {
       path_odom_x_ = odom_x_;
       path_odom_y_ = odom_y_;
@@ -158,6 +186,25 @@ private:
     has_odometry_ = std::isfinite(odom_x_) &&
       std::isfinite(odom_y_) && std::isfinite(odom_yaw_);
     last_odom_time_ = ros::Time::now();
+  }
+
+  void missionStopCallback(const std_msgs::Bool::ConstPtr& message)
+  {
+    mission_stop_requested_ = message->data;
+    has_mission_stop_ = true;
+    last_mission_stop_time_ = ros::Time::now();
+  }
+
+  void missionSpeedLimitCallback(const std_msgs::Float32::ConstPtr& message)
+  {
+    if (!std::isfinite(message->data) || message->data < 0.0F)
+    {
+      ROS_ERROR_THROTTLE(1.0, "Invalid mission speed limit");
+      return;
+    }
+    mission_speed_limit_ = static_cast<double>(message->data);
+    has_mission_speed_limit_ = true;
+    last_mission_speed_limit_time_ = ros::Time::now();
   }
 
   bool isRecoverableConeGap(const std::string& status) const
@@ -342,8 +389,28 @@ private:
   void controlCallback(const ros::TimerEvent& event)
   {
     const ros::Time now = ros::Time::now();
-    if (!has_odometry_ ||
-        (now - last_odom_time_).toSec() > odometry_timeout_)
+    if (use_mission_interface_)
+    {
+      const bool mission_timed_out =
+        !has_mission_stop_ || !has_mission_speed_limit_ ||
+        (now - last_mission_stop_time_).toSec() >
+          std::max(0.05, mission_timeout_) ||
+        (now - last_mission_speed_limit_time_).toSec() >
+          std::max(0.05, mission_timeout_);
+      if (mission_timed_out)
+      {
+        publishStop("MISSION_INTERFACE_TIMEOUT");
+        return;
+      }
+      if (mission_stop_requested_)
+      {
+        publishStop("MISSION_STOP");
+        return;
+      }
+    }
+    if (use_odometry_ &&
+        (!has_odometry_ ||
+         (now - last_odom_time_).toSec() > odometry_timeout_))
     {
       publishStop("WAITING_FOR_ODOMETRY");
       return;
@@ -361,7 +428,7 @@ private:
       std::numeric_limits<double>::infinity() :
       (now - creep_start_time_).toSec();
     const bool creep_allowed =
-      creep_requested_ && path_pose_valid_ &&
+      creep_requested_ && use_odometry_ && path_pose_valid_ &&
       creep_distance_ < creep_max_distance_ &&
       creep_age <= creep_max_time_;
 
@@ -385,7 +452,9 @@ private:
     const double path_curvature = estimatePathCurvature();
     const double raw_lookahead = clamp(
       lookahead_distance_ +
-        lookahead_speed_gain_ * std::max(0.0, measured_speed_) -
+        lookahead_speed_gain_ * std::max(
+          0.0,
+          use_odometry_ ? measured_speed_ : last_linear_command_) -
         lookahead_curvature_reduction_ *
           clamp(path_curvature / 1.0, 0.0, 1.0),
       min_lookahead_distance_,
@@ -397,7 +466,10 @@ private:
     double target_x = 0.0;
     double target_y = 0.0;
     if (!findLookahead(
-          active_lookahead_, creep_allowed, target_x, target_y))
+          active_lookahead_,
+          creep_allowed,
+          target_x,
+          target_y))
     {
       publishStop("NO_FORWARD_LOOKAHEAD");
       return;
@@ -426,6 +498,10 @@ private:
       target_speed *= degraded_speed_scale_;
     }
     target_speed = clamp(target_speed, 0.0, max_linear_speed_);
+    if (use_mission_interface_)
+    {
+      target_speed = std::min(target_speed, mission_speed_limit_);
+    }
     if (std::abs(curvature) > 1.0e-4)
     {
       target_speed = std::min(
@@ -467,7 +543,6 @@ private:
     command_pub_.publish(command);
     last_linear_command_ = linear_command;
     last_angular_command_ = angular_command;
-
     publishStatus(
       creep_allowed ? "CREEPING_FOR_CONES" :
       (degraded ? "RUNNING_DEGRADED" : "RUNNING"));
@@ -501,6 +576,8 @@ private:
   ros::Subscriber path_sub_;
   ros::Subscriber path_status_sub_;
   ros::Subscriber odom_sub_;
+  ros::Subscriber mission_stop_sub_;
+  ros::Subscriber mission_speed_limit_sub_;
   ros::Publisher command_pub_;
   ros::Publisher status_pub_;
   ros::Timer timer_;
@@ -508,10 +585,15 @@ private:
 
   bool has_path_ = false;
   bool has_odometry_ = false;
+  bool use_odometry_ = false;
   bool path_degraded_ = false;
   bool hard_path_fault_ = false;
   bool creep_requested_ = false;
   bool path_pose_valid_ = false;
+  bool use_mission_interface_ = false;
+  bool mission_stop_requested_ = true;
+  bool has_mission_stop_ = false;
+  bool has_mission_speed_limit_ = false;
 
   double measured_speed_ = 0.0;
   double odom_x_ = 0.0;
@@ -524,10 +606,13 @@ private:
   double active_lookahead_ = 1.0;
   double last_linear_command_ = 0.0;
   double last_angular_command_ = 0.0;
+  double mission_speed_limit_ = 0.0;
 
   ros::Time last_path_time_;
   ros::Time last_odom_time_;
   ros::Time creep_start_time_;
+  ros::Time last_mission_stop_time_;
+  ros::Time last_mission_speed_limit_time_;
   std::string last_status_;
 
   std::string input_path_topic_;
@@ -535,6 +620,8 @@ private:
   std::string input_odom_topic_;
   std::string output_cmd_topic_;
   std::string output_status_topic_;
+  std::string mission_stop_topic_;
+  std::string mission_speed_limit_topic_;
 
   double control_rate_ = 20.0;
   double odometry_timeout_ = 0.30;
@@ -559,6 +646,7 @@ private:
   double creep_max_distance_ = 0.80;
   double creep_max_time_ = 2.50;
   double creep_path_extension_ = 0.60;
+  double mission_timeout_ = 0.50;
 };
 
 int main(int argc, char** argv)

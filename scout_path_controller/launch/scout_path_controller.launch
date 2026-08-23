@@ -1,9 +1,24 @@
 <launch>
+  <arg name="odometry_topic" default="/odom" />
+  <arg name="use_odometry" default="false" />
+  <arg name="use_mission_interface" default="false" />
+  <arg name="mission_stop_topic" default="/mission/stop" />
+  <arg name="mission_speed_limit_topic" default="/mission/speed_limit" />
+  <arg name="cruise_speed" default="0.30" />
+  <arg name="max_linear_speed" default="0.40" />
+
   <node pkg="scout_path_controller"
         type="scout_path_controller_node"
         name="scout_path_controller"
         output="screen">
     <rosparam command="load"
               file="$(find scout_path_controller)/config/controller.yaml" />
+    <param name="input_odom_topic" value="$(arg odometry_topic)" />
+    <param name="use_odometry" value="$(arg use_odometry)" />
+    <param name="mission/use_interface" value="$(arg use_mission_interface)" />
+    <param name="mission/stop_topic" value="$(arg mission_stop_topic)" />
+    <param name="mission/speed_limit_topic" value="$(arg mission_speed_limit_topic)" />
+    <param name="cruise_speed" value="$(arg cruise_speed)" />
+    <param name="max_linear_speed" value="$(arg max_linear_speed)" />
   </node>
 </launch>

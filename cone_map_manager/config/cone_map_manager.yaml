@@ -1,0 +1,21 @@
+# Initial suggestions. Confirm with rosbag and real-vehicle data.
+input_topic: /perception/lidar/cones_raw
+pose_topic: /localization/pose
+output_topic: /mapping/cones
+marker_topic: /mapping/cone_markers
+status_topic: /mapping/status
+
+map_frame: map
+base_frame: base_link
+use_pose_topic: true
+tf_timeout: 0.03
+pose_max_age: 0.20
+input_timeout: 0.50
+publish_rate: 10.0
+
+min_observation_confidence: 0.35
+association_distance: 0.70
+minimum_confirm_hits: 3
+maximum_landmark_age: 30.0
+minimum_update_gain: 0.15
+maximum_update_gain: 0.60

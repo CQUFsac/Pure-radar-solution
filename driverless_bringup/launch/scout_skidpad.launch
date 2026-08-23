@@ -1,0 +1,42 @@
+<launch>
+  <arg name="start_detector" default="true" />
+  <arg name="start_planner" default="true" />
+  <arg name="start_controller" default="true" />
+  <arg name="use_odometry" default="false" />
+  <arg name="odometry_topic" default="/odom" />
+  <arg name="cone_topic" default="/perception/lidar/cones_raw" />
+  <arg name="imu_topic" default="/imu/data" />
+  <arg name="start_imu_driver" default="false" />
+  <arg name="imu_port" default="/dev/imu" />
+  <arg name="imu_baud_rate" default="115200" />
+  <arg name="start_mapper" default="false" />
+  <arg name="localization_pose_topic" default="/localization/pose" />
+
+  <group if="$(arg start_imu_driver)">
+    <include file="$(find serial_imu)/launch/imu_msg.launch">
+      <arg name="port" value="$(arg imu_port)" />
+      <arg name="baud_rate" value="$(arg imu_baud_rate)" />
+      <arg name="output_topic" value="$(arg imu_topic)" />
+    </include>
+  </group>
+
+  <include file="$(find driverless_bringup)/launch/scout_mini_algorithm.launch">
+    <arg name="start_detector" value="$(arg start_detector)" />
+    <arg name="start_planner" value="$(arg start_planner)" />
+    <arg name="start_controller" value="$(arg start_controller)" />
+    <arg name="use_odometry" value="$(arg use_odometry)" />
+    <arg name="odometry_topic" value="$(arg odometry_topic)" />
+    <arg name="cone_topic" value="$(arg cone_topic)" />
+    <arg name="start_mapper" value="$(arg start_mapper)" />
+    <arg name="localization_pose_topic" value="$(arg localization_pose_topic)" />
+    <arg name="use_mission_interface" value="true" />
+    <arg name="edge_min_width" value="1.0" />
+    <arg name="edge_expected_width" value="1.5" />
+    <arg name="edge_max_width" value="2.4" />
+  </include>
+
+  <include file="$(find scout_mission_manager)/launch/skidpad.launch">
+    <arg name="cone_topic" value="$(arg cone_topic)" />
+    <arg name="imu_topic" value="$(arg imu_topic)" />
+  </include>
+</launch>

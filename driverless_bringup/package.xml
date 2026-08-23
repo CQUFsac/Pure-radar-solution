@@ -9,4 +9,11 @@
   <maintainer email="todo@todo.com">CQU FSAC</maintainer>
   <license>MIT</license>
   <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>cone_map_manager</exec_depend>
+  <exec_depend>lidar_cone_detector</exec_depend>
+  <exec_depend>local_path_planner</exec_depend>
+  <exec_depend>roi_filter</exec_depend>
+  <exec_depend>scout_mission_manager</exec_depend>
+  <exec_depend>scout_path_controller</exec_depend>
+  <exec_depend>serial_imu</exec_depend>
 </package>

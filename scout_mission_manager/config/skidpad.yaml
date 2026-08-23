@@ -1,0 +1,53 @@
+# Initial suggestions for a scaled SCOUT MINI skidpad.
+# Confirm circle dimensions, IMU sign and speeds on the actual platform.
+mission_type: skidpad
+base_frame: base_link
+cone_topic: /perception/lidar/cones_raw
+imu_topic: /imu/data
+
+publish_rate: 20.0
+cone_timeout: 0.50
+imu_timeout: 0.30
+require_cones_before_start: true
+require_imu: true
+maximum_mission_time: 600.0
+brake_duration: 2.0
+
+imu:
+  calibrate_bias: true
+  gyro_bias_z: 0.0
+  bias_samples: 100
+  calibration_max_rate: 0.08
+  max_integration_dt: 0.10
+  # In ROS base_link, counter-clockwise angular velocity should be positive.
+  # Set to -1.0 only after a static direction test proves the driver is reversed.
+  yaw_sign: 1.0
+
+gate:
+  min_x: 0.2
+  max_x: 4.0
+  max_abs_y: 2.5
+  min_width: 1.0
+  max_width: 2.4
+  max_longitudinal_offset: 0.35
+  max_midpoint_lateral_offset: 0.45
+  min_cone_confidence: 0.25
+  require_double_gate: true
+  min_double_gate_spacing: 0.20
+  max_double_gate_spacing: 0.90
+  max_double_width_difference: 0.45
+  required_present_frames: 3
+  required_clear_frames: 3
+  rearm_time: 1.0
+
+skidpad:
+  entry_speed: 0.25
+  circle_speed: 0.30
+  transition_speed: 0.20
+  exit_speed: 0.25
+  # Less than 2*pi so a gate can be recognized slightly before completing a lap.
+  lap_yaw_threshold: 5.20
+  minimum_lap_time: 10.0
+  transition_minimum_time: 1.0
+  # No odometry is required. The initial version therefore limits exit by time.
+  exit_duration: 20.0

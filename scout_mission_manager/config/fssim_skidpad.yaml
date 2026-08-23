@@ -1,0 +1,68 @@
+# FSSIM skidpad initial values. This file is simulation-only.
+mission_type: skidpad
+base_frame: fssim/vehicle/base_link
+cone_topic: /perception/lidar/cones_raw
+imu_topic: /imu/data
+odom_topic: /odometry/filtered
+publish_rate: 20.0
+cone_timeout: 0.60
+imu_timeout: 0.30
+# This simulator-only reference follows the known skidpad geometry and uses
+# ground-truth odometry. Cone/IMU dropouts must not latch a false mission fault.
+require_cones_before_start: false
+monitor_cones_during_run: false
+require_imu: false
+auto_start: true
+# Four 57.3 m circles at the conservative corner speed can exceed 300 s.
+maximum_mission_time: 900.0
+brake_duration: 2.0
+
+imu:
+  calibrate_bias: false
+  gyro_bias_z: 0.0
+  bias_samples: 10
+  calibration_max_rate: 0.08
+  max_integration_dt: 0.10
+  yaw_sign: 1.0
+
+# FSSIM skidpad timing gates are about 4 m wide. The two orange gate rows
+# are farther apart than the scaled SCOUT MINI test layout.
+gate:
+  min_x: 0.2
+  max_x: 6.0
+  max_abs_y: 3.5
+  min_width: 3.0
+  max_width: 5.2
+  max_longitudinal_offset: 0.60
+  max_midpoint_lateral_offset: 0.80
+  min_cone_confidence: 0.20
+  # Only the two-row orange timing gate should advance the lap state.
+  # A normal blue-yellow track-width pair must not count as a lap gate.
+  require_double_gate: true
+  min_double_gate_spacing: 1.8
+  max_double_gate_spacing: 3.2
+  max_double_width_difference: 0.8
+  required_present_frames: 2
+  required_clear_frames: 2
+  rearm_time: 1.0
+
+skidpad:
+  entry_speed: 0.90
+  circle_speed: 1.05
+  transition_speed: 0.85
+  exit_speed: 1.00
+  lap_yaw_threshold: 5.20
+  minimum_lap_time: 8.0
+  transition_minimum_time: 1.0
+  exit_duration: 8.0
+  # Simulation uses the fixed FSSIM timing-line pose. This makes the event
+  # sequence deterministic: crossing 1/2/3/4/5 = right/right/left/left/exit.
+  # Keep this false on the real vehicle until map-frame localisation exists.
+  use_odometry_crossing: true
+  crossover_world_x: 0.0
+  crossover_max_abs_y: 3.0
+  crossover_rearm_distance: 1.0
+  crossover_min_interval: 4.0
+  # Leave the crossover in the entry direction, then brake well inside the
+  # rule's 25 m stopping zone.
+  exit_distance: 8.0

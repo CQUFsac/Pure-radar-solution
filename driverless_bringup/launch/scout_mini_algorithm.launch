@@ -2,25 +2,67 @@
   <!--
     External prerequisites:
       /lidar/non_ground_points  sensor_msgs/PointCloud2
-      /odometry/filtered       nav_msgs/Odometry
-      odom -> base_link        published by exactly one EKF
+      /odom                    nav_msgs/Odometry (optional, reserved)
 
-    Start rslidar_sdk, ground segmentation, CH110, SCOUT driver and
-    robot_localization in their hardware launch files before this launch.
+    Start rslidar_sdk, ground segmentation and the SCOUT driver before this
+    launch. The current profile does not require odometry and does not start
+    estimation or CH110 fusion.
   -->
+  <arg name="odometry_topic" default="/odom" />
+  <arg name="use_odometry" default="false" />
   <arg name="start_detector" default="true" />
   <arg name="start_planner" default="true" />
   <arg name="start_controller" default="true" />
+  <arg name="start_mapper" default="false" />
+  <arg name="cone_topic" default="/perception/lidar/cones_raw" />
+  <arg name="localization_pose_topic" default="/localization/pose" />
+  <arg name="mapper_use_pose_topic" default="true" />
+  <arg name="use_mission_interface" default="false" />
+  <arg name="mission_turn_hint_topic" default="/mission/turn_hint" />
+  <arg name="mission_stop_topic" default="/mission/stop" />
+  <arg name="mission_speed_limit_topic" default="/mission/speed_limit" />
+  <arg name="edge_min_width" default="1.5" />
+  <arg name="edge_expected_width" default="2.5" />
+  <arg name="edge_max_width" default="4.5" />
+  <arg name="controller_cruise_speed" default="0.30" />
+  <arg name="controller_max_linear_speed" default="0.40" />
 
   <group if="$(arg start_detector)">
     <include file="$(find lidar_cone_detector)/launch/lidar_cone_detector.launch" />
   </group>
 
   <group if="$(arg start_planner)">
-    <include file="$(find local_path_planner)/launch/local_path_planner.launch" />
+    <include file="$(find local_path_planner)/launch/local_path_planner.launch">
+      <arg name="input_topic" value="$(arg cone_topic)" />
+      <arg name="odometry_topic" value="$(arg odometry_topic)" />
+      <arg name="use_odometry" value="$(arg use_odometry)" />
+      <arg name="use_mission_turn_hint" value="$(arg use_mission_interface)" />
+      <arg name="mission_turn_hint_topic" value="$(arg mission_turn_hint_topic)" />
+      <arg name="edge_min_width" value="$(arg edge_min_width)" />
+      <arg name="edge_expected_width" value="$(arg edge_expected_width)" />
+      <arg name="edge_max_width" value="$(arg edge_max_width)" />
+    </include>
   </group>
 
   <group if="$(arg start_controller)">
-    <include file="$(find scout_path_controller)/launch/scout_path_controller.launch" />
+    <include file="$(find scout_path_controller)/launch/scout_path_controller.launch">
+      <arg name="odometry_topic" value="$(arg odometry_topic)" />
+      <arg name="use_odometry" value="$(arg use_odometry)" />
+      <arg name="use_mission_interface" value="$(arg use_mission_interface)" />
+      <arg name="mission_stop_topic" value="$(arg mission_stop_topic)" />
+      <arg name="mission_speed_limit_topic" value="$(arg mission_speed_limit_topic)" />
+      <arg name="cruise_speed" value="$(arg controller_cruise_speed)" />
+      <arg name="max_linear_speed"
+           value="$(arg controller_max_linear_speed)" />
+    </include>
+  </group>
+
+  <!-- Optional: waits for map->base_link TF or localization_pose_topic. -->
+  <group if="$(arg start_mapper)">
+    <include file="$(find cone_map_manager)/launch/cone_map_manager.launch">
+      <arg name="input_topic" value="$(arg cone_topic)" />
+      <arg name="pose_topic" value="$(arg localization_pose_topic)" />
+      <arg name="use_pose_topic" value="$(arg mapper_use_pose_topic)" />
+    </include>
   </group>
 </launch>

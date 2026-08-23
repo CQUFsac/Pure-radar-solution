@@ -19,27 +19,28 @@ enable_package()
   fi
 }
 
-# The teammate localization tree contains an older package with the same ROS
-# package name. Keep it disabled; the maintained detector is in the perception
-# repository.
-touch "${SRC_DIR}/estimation/lidar_cone_detector/CATKIN_IGNORE"
-
 if [[ "${PROFILE}" == "scout" ]]; then
+  enable_package "lidar_cone_detector/cone_map_manager"
+  enable_package "lidar_cone_detector/driverless_bringup"
   enable_package "lidar_cone_detector/lidar_cone_detector"
+  enable_package "lidar_cone_detector/local_path_planner"
   enable_package "lidar_cone_detector/roi_filter"
   enable_package "lidar_cone_detector/rslidar_sdk"
-  enable_package "estimation/robot_localization"
+  enable_package "lidar_cone_detector/scout_mission_manager"
+  enable_package "lidar_cone_detector/scout_path_controller"
+  enable_package "lidar_cone_detector/imu/serial_imu"
 
   RSLIDAR_DIR="${SRC_DIR}/lidar_cone_detector/rslidar_sdk"
   if [[ ! -e "${RSLIDAR_DIR}/package.xml" &&
         -f "${RSLIDAR_DIR}/package_ros1.xml" ]]; then
-    ln -s package_ros1.xml "${RSLIDAR_DIR}/package.xml"
+    # A Windows/VM shared directory may not support Linux symbolic links.
+    cp "${RSLIDAR_DIR}/package_ros1.xml" "${RSLIDAR_DIR}/package.xml"
   fi
 
-  PACKAGES="driverless_msgs;lidar_cone_detector;roi_filter;rslidar_sdk;local_path_planner;scout_path_controller;driverless_bringup;robot_localization;scout_base;scout_bringup;scout_description;scout_msgs;ugv_sdk;wrp_io"
+  PACKAGES="driverless_msgs;serial_imu;lidar_cone_detector;roi_filter;rslidar_sdk;local_path_planner;cone_map_manager;scout_mission_manager;scout_path_controller;driverless_bringup;scout_base;scout_bringup;scout_description;scout_msgs;ugv_sdk;wrp_io"
   echo "Building SCOUT MINI profile"
 else
-  PACKAGES="cone_car_core;driverless_msgs;local_path_planner;fssim_path_controller;driverless_bringup;fssim_common;fssim_description;fssim_gazebo;fssim_gazebo_plugins;fssim"
+  PACKAGES="cone_car_core;driverless_msgs;local_path_planner;fssim_path_controller;driverless_bringup;fssim_common;fssim_description;fssim_gazebo;fssim_gazebo_plugins;fssim;fssim_bridge"
   echo "Building FSSIM profile"
 fi
 

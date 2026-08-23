@@ -2,6 +2,7 @@ input_topic: /perception/lidar/cones_raw
 output_topic: /planning/local_path
 debug_topic: /planning/debug/path_markers
 odometry_topic: /odometry/filtered
+use_odometry: true
 confidence_topic: /planning/path_confidence
 status_topic: /planning/path_status
 expected_frame: base_link
@@ -91,6 +92,15 @@ search:
   progress_reward_weight: 0.25
   gap_bridge_penalty: 2.0
   gap_confidence_scale: 0.70
+  # Used only when mission/use_turn_hint is true.
+  mission_wrong_turn_penalty: 8.0
+  mission_straight_penalty: 2.0
+  mission_turn_deadband: 0.06
+
+mission:
+  use_turn_hint: false
+  turn_hint_topic: /mission/turn_hint
+  turn_hint_timeout: 0.50
 
 smoother:
   use_cubic_spline: true

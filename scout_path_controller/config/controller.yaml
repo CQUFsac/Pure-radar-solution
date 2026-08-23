@@ -1,8 +1,15 @@
 input_path_topic: /planning/local_path
 input_path_status_topic: /planning/path_status
-input_odom_topic: /odometry/filtered
+input_odom_topic: /odom
+use_odometry: false
 output_cmd_topic: /cmd_vel
 output_status_topic: /scout_path_controller/status
+
+mission:
+  use_interface: false
+  stop_topic: /mission/stop
+  speed_limit_topic: /mission/speed_limit
+  timeout: 0.50
 
 control_rate: 20.0
 odometry_timeout: 0.30
