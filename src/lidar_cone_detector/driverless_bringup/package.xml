@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>driverless_bringup</name>
+  <version>0.1.0</version>
+  <description>
+    Separate ROS1 algorithm entry points for SCOUT MINI and FSSIM.
+  </description>
+
+  <maintainer email="todo@todo.com">CQU FSAC</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>cone_map_manager</exec_depend>
+  <exec_depend>lidar_cone_detector</exec_depend>
+  <exec_depend>local_path_planner</exec_depend>
+  <exec_depend>roi_filter</exec_depend>
+  <exec_depend>scout_mission_manager</exec_depend>
+  <exec_depend>scout_path_controller</exec_depend>
+  <exec_depend>serial_imu</exec_depend>
+</package>

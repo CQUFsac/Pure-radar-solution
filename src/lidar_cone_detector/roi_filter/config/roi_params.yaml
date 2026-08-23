@@ -1,0 +1,17 @@
+roi_filter_node:
+  # Initial suggestions for the first low-speed straight-line test.
+  # Confirm all values with an actual level-ground rosbag.
+  roi_xmin: 0.5
+  roi_xmax: 20.0
+  roi_ymin: -5.0
+  roi_ymax: 5.0
+  roi_zmin: -0.6
+  roi_zmax: 1.5
+
+  input_topic: /rslidar_points
+  roi_topic: /lidar/roi_points
+  ground_topic: /lidar/ground_points
+  non_ground_topic: /lidar/non_ground_points
+
+  # Initial suggestion for a LiDAR about 0.30 m above level ground.
+  ground_z_threshold: -0.25

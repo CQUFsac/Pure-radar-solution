@@ -1,0 +1,43 @@
+<launch>
+  <!-- ==================== Parameters ==================== -->
+  <rosparam file="$(find cone_car_core)/config/params.yaml" command="load" />
+
+  <!-- ==================== Perception Layer ==================== -->
+  <node name="fake_cone_publisher" pkg="cone_car_core" type="fake_cone_publisher" output="screen">
+  </node>
+
+  <!-- ==================== Localization Layer ==================== -->
+  <!-- 真机模式: LOAM + EKF 融合定位 (Racing_Loc_Mod) -->
+  <include file="$(find racing_loc_mod)/launch/localization.launch" />
+  <!-- 仿真模式: 注释上面一行，取消下面的注释 -->
+  <!--
+  <include file="$(find racing_loc_mod)/launch/fake_localization.launch" />
+  -->
+
+  <!-- ==================== Planning Layer ==================== -->
+  <node name="path_generator_node" pkg="cone_car_core" type="path_generator_node" output="screen">
+  </node>
+
+  <!-- ==================== Mode Manager ==================== -->
+  <node name="mode_manager_node" pkg="cone_car_core" type="mode_manager_node" output="screen">
+  </node>
+
+  <!-- ==================== Control Layer ==================== -->
+  <node name="pure_pursuit_controller_node" pkg="cone_car_core" type="pure_pursuit_controller_node" output="screen">
+  </node>
+
+  <!-- ==================== Vehicle (Fake) ==================== -->
+  <node name="fake_vehicle_node" pkg="cone_car_core" type="fake_vehicle_node" output="screen">
+  </node>
+
+  <!-- ==================== Data Logger ==================== -->
+  <node name="data_logger_node" pkg="cone_car_core" type="data_logger_node" output="screen">
+  </node>
+
+  <!-- ==================== Visualization ==================== -->
+  <node name="rviz_visualizer_node" pkg="cone_car_core" type="rviz_visualizer_node" output="screen">
+  </node>
+
+  <!-- ==================== RViz ==================== -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cone_car_core)/config/cone_car.rviz" output="screen" required="false" />
+</launch>

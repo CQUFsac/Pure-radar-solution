@@ -1,0 +1,51 @@
+<launch>
+  <!-- Acceleration is isolated from the trackdrive configuration. -->
+  <arg name="use_rviz" default="true" />
+  <!-- This is target speed, not guaranteed 75 m average speed. -->
+  <arg name="cruise_speed" default="15.00" />
+
+  <include file="$(find fssim_bridge)/launch/fssim_integration.launch">
+    <arg name="use_rviz" value="$(arg use_rviz)" />
+    <arg name="fssim_config" value="$(find fssim)/config/simulation_acceleration.yaml" />
+    <arg name="cruise_speed" value="$(arg cruise_speed)" />
+    <arg name="minimum_corner_speed" value="$(arg cruise_speed)" />
+    <!-- High-speed straight-line profile.  A 2.8 m lookahead at 15 m/s
+         amplifies centimetre-level path jitter into steering oscillation. -->
+    <arg name="lookahead_distance" value="6.0" />
+    <arg name="min_lookahead_distance" value="5.0" />
+    <arg name="max_lookahead_distance" value="9.0" />
+    <arg name="lookahead_speed_gain" value="0.15" />
+    <arg name="lookahead_curvature_reduction" value="0.0" />
+    <arg name="lookahead_filter" value="0.75" />
+    <arg name="max_steer" value="0.08" />
+    <arg name="max_steer_rate" value="0.15" />
+    <arg name="max_steer_acceleration" value="0.40" />
+    <arg name="max_steer_return_rate" value="0.22" />
+    <arg name="max_steer_return_acceleration" value="0.70" />
+    <arg name="steering_filter" value="0.45" />
+    <arg name="preview_distance" value="12.0" />
+    <arg name="preview_curvature_weight" value="0.10" />
+    <arg name="preview_curvature_filter" value="0.85" />
+    <arg name="use_mission_turn_hint" value="false" />
+    <!-- FSSIM acceleration: boundaries y=+/-1.9 m, cone pitch=5 m,
+         first blue-yellow gate is 7 m ahead of the spawn pose. -->
+    <arg name="planner_min_width" value="3.2" />
+    <arg name="planner_max_width" value="4.4" />
+    <arg name="planner_expected_width" value="3.8" />
+    <arg name="planner_expected_boundary_spacing" value="5.0" />
+    <arg name="planner_start_max_distance" value="8.0" />
+    <arg name="planner_max_step_distance" value="5.5" />
+    <arg name="planner_allow_orange_cross_edges" value="true" />
+    <arg name="drive_feedforward" value="0.05" />
+    <arg name="speed_kp" value="0.08" />
+    <arg name="max_drive_command" value="0.35" />
+    <!-- The second finish-gate row in acceleration.sdf is x=75.3 m.
+         FSSIM's mission-finished topic is primary; world x is a fallback. -->
+    <arg name="finish_stop_enabled" value="true" />
+    <arg name="finish_stop_use_world_x_fallback" value="true" />
+    <arg name="finish_stop_world_x" value="75.3" />
+    <arg name="max_brake_command" value="-0.35" />
+    <arg name="max_target_acceleration" value="4.00" />
+    <arg name="max_target_deceleration" value="3.00" />
+  </include>
+</launch>

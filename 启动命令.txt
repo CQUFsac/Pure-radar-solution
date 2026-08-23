@@ -1,0 +1,17 @@
+先编译
+cd /fase_ws_sim
+bash src/lidar_cone_detector/driverless_bringup/scripts/build_workspace_profile.sh scout
+source devel/setup.bash
+启动雷达和配置CAN后启动算法
+roslaunch driverless_bringup scout_acceleration.launch
+
+第一阶段
+roslaunch driverless_bringup scout_acceleration.launch \ approach_speed:=0.15 \run_speed:=0.25 \max_linear_speed:=0.30
+第二阶段
+roslaunch driverless_bringup scout_acceleration.launch \approach_speed:=0.20 \run_speed:=0.40 \max_linear_speed:=0.50
+第三阶段
+roslaunch driverless_bringup scout_acceleration.launch \approach_speed:=0.25 \run_speed:=0.60 \max_linear_speed:=0.70
+每次测试时后都要执行
+rosservice call /mission/start
+测试完成后还原复位
+rosservice call /mission/reset

@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find serial_imu)/launch/imu_msg.launch" />
+  <node pkg="rviz" name="imu_rviz" type="rviz" />
+</launch>

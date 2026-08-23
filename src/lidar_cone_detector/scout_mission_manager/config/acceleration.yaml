@@ -1,0 +1,48 @@
+# Initial suggestions for a 20 m SCOUT MINI acceleration test course.
+# Confirm every value with rosbag and real-vehicle testing.
+mission_type: acceleration
+base_frame: base_link
+cone_topic: /perception/lidar/cones_raw
+imu_topic: /imu/data
+
+publish_rate: 20.0
+cone_timeout: 0.50
+imu_timeout: 0.30
+require_cones_before_start: true
+require_imu: false
+maximum_mission_time: 100.0
+brake_duration: 2.0
+
+imu:
+  calibrate_bias: true
+  gyro_bias_z: 0.0
+  bias_samples: 100
+  calibration_max_rate: 0.08
+  max_integration_dt: 0.10
+  yaw_sign: 1.0
+
+# Use two cone pairs separated by 0.2-0.9 m as a LiDAR-visible line.
+# A painted timing line cannot be detected by the current pure-LiDAR system.
+gate:
+  min_x: 0.2
+  max_x: 4.0
+  max_abs_y: 2.5
+  min_width: 1.4
+  max_width: 2.6
+  max_longitudinal_offset: 0.35
+  max_midpoint_lateral_offset: 0.45
+  min_cone_confidence: 0.25
+  require_double_gate: true
+  min_double_gate_spacing: 0.20
+  max_double_gate_spacing: 0.90
+  max_double_width_difference: 0.45
+  required_present_frames: 3
+  required_clear_frames: 3
+  rearm_time: 1.0
+
+acceleration:
+  use_start_gate: true
+  approach_speed: 0.30
+  run_speed: 0.30
+  minimum_run_time: 8.0
+  start_gate_timeout: 15.0

@@ -1,0 +1,16 @@
+<launch>
+  <arg name="port" default="/dev/imu" />
+  <arg name="baud_rate" default="115200" />
+  <arg name="frame_id" default="imu_link" />
+  <arg name="output_topic" default="/imu/data" />
+
+  <node pkg="serial_imu"
+        type="serial_imu_node"
+        name="serial_imu"
+        output="screen">
+    <param name="port" value="$(arg port)" />
+    <param name="baud_rate" value="$(arg baud_rate)" />
+    <param name="frame_id" value="$(arg frame_id)" />
+    <param name="output_topic" value="$(arg output_topic)" />
+  </node>
+</launch>

@@ -1,0 +1,16 @@
+<launch>
+  <arg name="input_topic" default="/perception/lidar/cones_raw" />
+  <arg name="pose_topic" default="/localization/pose" />
+  <arg name="use_pose_topic" default="true" />
+
+  <node pkg="cone_map_manager"
+        type="cone_map_manager_node"
+        name="cone_map_manager"
+        output="screen">
+    <rosparam command="load"
+              file="$(find cone_map_manager)/config/cone_map_manager.yaml" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="pose_topic" value="$(arg pose_topic)" />
+    <param name="use_pose_topic" value="$(arg use_pose_topic)" />
+  </node>
+</launch>

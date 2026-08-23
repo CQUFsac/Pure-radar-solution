@@ -1,0 +1,25 @@
+perception:
+  max_detection_distance: 10.0
+  min_cone_confidence: 0.3
+
+planning:
+  smoothing_window: 3
+  min_centerline_points: 3
+  max_boundary_gap: 3.0
+
+mode:
+  sharp_curve_curvature_threshold: 0.25
+  recovery_stable_frames: 10
+
+speed:
+  normal_speed: 1.5
+  sharp_curve_speed: 0.8
+  recovery_speed: 1.0
+  emergency_speed: 0.0
+
+control:
+  lookahead_distance: 1.5
+  max_steering_angle: 0.5
+  max_steering_rate: 0.1
+  throttle_kp: 0.5
+  brake_value_emergency: 1.0

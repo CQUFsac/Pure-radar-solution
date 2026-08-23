@@ -1,0 +1,390 @@
+<launch>
+  <!--
+    One FSSIM integration entry:
+      FSSIM cone sensor -> unified cone message -> local path -> Pure Pursuit -> /fssim/cmd
+      FSSIM ground truth -> /odometry/filtered
+  -->
+
+  <arg name="start_fssim" default="true" />
+  <arg name="use_rviz" default="true" />
+  <arg name="fssim_config" default="$(find fssim)/config/simulation.yaml" />
+
+  <!-- Initial simulation values. Tune after the first stable lap. -->
+  <arg name="cruise_speed" default="0.90" />
+  <arg name="minimum_corner_speed" default="0.50" />
+  <arg name="lookahead_distance" default="2.0" />
+  <arg name="min_lookahead_distance" default="1.20" />
+  <arg name="max_lookahead_distance" default="2.80" />
+  <arg name="lookahead_speed_gain" default="0.25" />
+  <arg name="lookahead_curvature_reduction" default="0.10" />
+  <arg name="lookahead_filter" default="0.50" />
+  <arg name="steering_sign" default="1.0" />
+  <arg name="max_steer" default="0.40" />
+  <arg name="max_steer_rate" default="0.55" />
+  <arg name="max_steer_acceleration" default="1.20" />
+  <arg name="max_steer_return_rate" default="0.90" />
+  <arg name="max_steer_return_acceleration" default="3.00" />
+  <arg name="steering_filter" default="0.25" />
+  <arg name="preview_distance" default="5.50" />
+  <arg name="preview_curvature_weight" default="0.38" />
+  <arg name="preview_curvature_filter" default="0.65" />
+  <arg name="publish_sim_imu" default="false" />
+  <arg name="use_mission_turn_hint" default="false" />
+  <arg name="mission_wrong_turn_penalty" default="8.0" />
+  <arg name="mission_straight_penalty" default="2.0" />
+  <arg name="mission_control_use_stop" default="false" />
+  <arg name="mission_control_use_speed_limit" default="false" />
+  <!-- The FSSIM skidpad wrapper uses a deterministic event reference. -->
+  <arg name="use_skidpad_path_generator" default="false" />
+  <!-- Planner geometry defaults for the original FSG trackdrive map. -->
+  <arg name="planner_min_width" default="1.0" />
+  <arg name="planner_max_width" default="6.0" />
+  <arg name="planner_expected_width" default="3.0" />
+  <arg name="planner_expected_boundary_spacing" default="3.0" />
+  <arg name="planner_start_max_distance" default="5.0" />
+  <arg name="planner_max_step_distance" default="5.0" />
+  <arg name="planner_allow_orange_cross_edges" default="false" />
+  <arg name="drive_feedforward" default="0.035" />
+  <arg name="speed_kp" default="0.06" />
+  <arg name="max_drive_command" default="0.18" />
+  <arg name="max_brake_command" default="-0.15" />
+  <arg name="max_target_acceleration" default="0.50" />
+  <arg name="max_target_deceleration" default="0.80" />
+  <!-- Disabled for multi-lap events; the acceleration wrapper enables it. -->
+  <arg name="finish_stop_enabled" default="false" />
+  <arg name="finish_stop_use_world_x_fallback" default="false" />
+  <arg name="finish_stop_world_x" default="75.3" />
+
+  <param name="/use_sim_time" value="true" />
+
+  <!-- auto_fssim.launch also starts RViz. Use start.launch so only our RViz opens. -->
+  <group if="$(arg start_fssim)">
+    <include file="$(find fssim)/launch/start.launch">
+      <arg name="fssim_config" value="$(arg fssim_config)" />
+    </include>
+  </group>
+
+  <node pkg="fssim_bridge"
+        type="fssim_odom_bridge"
+        name="fssim_odom_bridge"
+        output="screen">
+    <param name="input_state_topic" value="/fssim/base_pose_ground_truth" />
+    <param name="output_odom_topic" value="/odometry/filtered" />
+    <param name="odom_frame" value="fssim_map" />
+    <param name="base_frame" value="fssim/vehicle/base_link" />
+    <!-- FSSIM already publishes fssim_map -> fssim/vehicle/base_link. -->
+    <param name="publish_tf" value="false" />
+    <param name="publish_imu" value="$(arg publish_sim_imu)" />
+    <param name="output_imu_topic" value="/imu/data" />
+  </node>
+
+  <node pkg="fssim_bridge"
+        type="fssim_bridge_node"
+        name="fssim_bridge_node"
+        output="screen">
+    <param name="input_cones_topic" value="/lidar/cones" />
+    <param name="input_path_topic" value="/planning/local_path" />
+    <param name="input_path_status_topic" value="/planning/path_status" />
+    <param name="input_odom_topic" value="/odometry/filtered" />
+    <param name="output_cones_topic" value="/perception/lidar/cones_raw" />
+    <param name="output_cmd_topic" value="/fssim/cmd" />
+    <!-- FSSIM PointCloud2 contains simulated colour probabilities. -->
+    <param name="use_simulated_color" value="true" />
+    <param name="simulated_color_min_confidence" value="0.55" />
+    <!-- Keep the native FSSIM vehicle frame end to end. -->
+    <param name="output_cone_frame" value="" />
+
+    <param name="wheelbase" value="1.53" />
+    <param name="lookahead_distance" value="$(arg lookahead_distance)" />
+    <!-- Keep enough preview to enter a bend as one arc instead of reacting
+         after the first curved cone pair has already passed the vehicle. -->
+    <param name="min_lookahead_distance" value="$(arg min_lookahead_distance)" />
+    <param name="max_lookahead_distance" value="$(arg max_lookahead_distance)" />
+    <param name="lookahead_speed_gain" value="$(arg lookahead_speed_gain)" />
+    <!-- Long-range curvature is handled separately.  Do not collapse the
+         tracking lookahead just because a bend is visible ahead. -->
+    <param name="lookahead_curvature_reduction"
+           value="$(arg lookahead_curvature_reduction)" />
+    <param name="lookahead_filter" value="$(arg lookahead_filter)" />
+    <param name="steering_sign" value="$(arg steering_sign)" />
+    <param name="max_steer" value="$(arg max_steer)" />
+    <param name="max_steer_rate" value="$(arg max_steer_rate)" />
+    <param name="max_steer_acceleration" value="$(arg max_steer_acceleration)" />
+    <!-- Releasing an existing corner may be faster than building more lock,
+         while still remaining rate/acceleration limited. -->
+    <param name="max_steer_return_rate" value="$(arg max_steer_return_rate)" />
+    <param name="max_steer_return_acceleration"
+           value="$(arg max_steer_return_acceleration)" />
+    <param name="steering_filter" value="$(arg steering_filter)" />
+    <!-- Feed a small, filtered part of the next 5.5 m mean curvature into
+         steering so a fast bend starts progressively instead of all at once. -->
+    <param name="preview_distance" value="$(arg preview_distance)" />
+    <param name="preview_curvature_weight"
+           value="$(arg preview_curvature_weight)" />
+    <param name="preview_curvature_filter"
+           value="$(arg preview_curvature_filter)" />
+
+    <param name="cruise_speed" value="$(arg cruise_speed)" />
+    <param name="minimum_corner_speed" value="$(arg minimum_corner_speed)" />
+    <param name="speed_kp" value="$(arg speed_kp)" />
+    <param name="drive_feedforward" value="$(arg drive_feedforward)" />
+    <param name="max_drive_command" value="$(arg max_drive_command)" />
+    <param name="max_brake_command" value="$(arg max_brake_command)" />
+    <param name="finish_stop/enabled" value="$(arg finish_stop_enabled)" />
+    <param name="finish_stop/use_mission_finished" value="true" />
+    <param name="finish_stop/use_world_x_fallback"
+           value="$(arg finish_stop_use_world_x_fallback)" />
+    <param name="finish_stop/world_x" value="$(arg finish_stop_world_x)" />
+    <param name="finish_stop/stopped_speed_threshold" value="0.05" />
+    <param name="input_mission_stop_topic" value="/mission/stop" />
+    <param name="input_mission_speed_limit_topic" value="/mission/speed_limit" />
+    <param name="mission_control/use_stop"
+           value="$(arg mission_control_use_stop)" />
+    <param name="mission_control/use_speed_limit"
+           value="$(arg mission_control_use_speed_limit)" />
+    <!-- Smooth the speed request instead of pulsing throttle on path changes. -->
+    <param name="max_target_acceleration" value="$(arg max_target_acceleration)" />
+    <param name="max_target_deceleration" value="$(arg max_target_deceleration)" />
+
+    <param name="control_rate" value="50.0" />
+    <!-- Keep the last valid path briefly; never drive blind for multiple seconds. -->
+    <param name="path_timeout" value="1.50" />
+    <param name="path_freshness_timeout" value="0.50" />
+    <param name="path_fallback_speed_scale" value="0.85" />
+    <param name="odometry_timeout" value="1.00" />
+    <!--
+      If cone messages are alive but a short section cannot form cone pairs,
+      follow the odometry-compensated last path for a strictly limited distance.
+    -->
+    <!-- When the next valid gate appears one scan late, continue the tangent
+         of the last validated curve for a short, distance-limited interval. -->
+    <param name="creep/max_distance" value="1.20" />
+    <param name="creep/max_time" value="2.50" />
+    <param name="creep/path_extension" value="0.65" />
+    <param name="creep/max_speed" value="0.80" />
+  </node>
+
+  <node unless="$(arg use_skidpad_path_generator)"
+        pkg="local_path_planner"
+        type="local_path_planner_node"
+        name="local_path_planner"
+        output="screen">
+    <rosparam command="load"
+              file="$(find local_path_planner)/config/local_path_planner.yaml" />
+
+    <param name="input_topic" value="/perception/lidar/cones_raw" />
+    <param name="odometry_topic" value="/odometry/filtered" />
+    <param name="output_topic" value="/planning/local_path" />
+    <param name="expected_frame" value="fssim/vehicle/base_link" />
+    <param name="publish_debug" value="true" />
+    <param name="mission/use_turn_hint" value="$(arg use_mission_turn_hint)" />
+    <param name="mission/turn_hint_topic" value="/mission/turn_hint" />
+    <param name="mission/turn_hint_timeout" value="0.50" />
+    <param name="search/mission_wrong_turn_penalty"
+           value="$(arg mission_wrong_turn_penalty)" />
+    <param name="search/mission_straight_penalty"
+           value="$(arg mission_straight_penalty)" />
+
+    <!-- FSSIM cone observations arrive at 10 Hz with about 0.2 s simulated delay. -->
+    <param name="input_timeout" value="0.50" />
+    <param name="odometry/max_age" value="0.35" />
+    <param name="min_input_cones" value="2" />
+    <!-- FSSIM itself keeps cones down to x=-2 m.  Retaining this short
+         side/rear strip is necessary while the vehicle rotates in a hairpin. -->
+    <param name="roi/min_x" value="-2.0" />
+    <param name="roi/max_x" value="18.0" />
+    <param name="roi/max_abs_y" value="9.0" />
+
+    <!-- Rolling local landmark memory.  It uses only observed cones and the
+         simulated odometry; it does not subscribe to the FSSIM track map. -->
+    <param name="cone_memory/enabled" value="true" />
+    <param name="cone_memory/merge_distance" value="0.45" />
+    <param name="cone_memory/max_age" value="5.0" />
+    <param name="cone_memory/max_radius" value="22.0" />
+    <param name="cone_memory/min_confidence" value="0.22" />
+    <param name="cone_memory/position_update_weight" value="0.35" />
+    <param name="cone_memory/semantic_vote_decay" value="0.96" />
+    <param name="cone_memory/max_cones" value="240" />
+
+    <!-- Initial FSSIM values. Keep them relaxed until the first complete lap. -->
+    <param name="edge/min_delaunay_candidates" value="6" />
+    <param name="edge/min_width" value="$(arg planner_min_width)" />
+    <param name="edge/max_width" value="$(arg planner_max_width)" />
+    <param name="edge/expected_width" value="$(arg planner_expected_width)" />
+    <!--
+      Same-colour edges remain in Delaunay topology, but only blue-yellow
+      pairs may create centre-line midpoints. A tighter longitudinal gate
+      prevents a hairpin from connecting to the nearby return branch.
+    -->
+    <param name="edge/use_semantic_pairing" value="true" />
+    <param name="edge/allow_orange_cross_edges" value="$(arg planner_allow_orange_cross_edges)" />
+    <!-- Each coloured cone may define only one cross-track gate. This prevents
+         diagonal blue-yellow pairs from creating a false branch in a bend. -->
+    <param name="edge/enforce_semantic_one_to_one" value="true" />
+    <param name="edge/unknown_semantic_penalty" value="0.8" />
+    <!--
+      Same-colour links can create a virtual centre point by shifting half a
+      track width inward. This survives a missing opposite cone.
+    -->
+    <param name="edge/use_semantic_boundary_recovery" value="true" />
+    <param name="edge/semantic_boundary_requires_reference" value="false" />
+    <param name="edge/expected_boundary_spacing" value="$(arg planner_expected_boundary_spacing)" />
+    <param name="edge/min_boundary_link_distance" value="0.35" />
+    <param name="edge/max_boundary_link_distance" value="6.5" />
+    <param name="edge/max_boundary_heading_error_deg" value="65.0" />
+    <param name="edge/max_boundary_start_heading_error_deg" value="82.0" />
+    <param name="edge/min_boundary_reference_offset" value="0.55" />
+    <param name="edge/max_boundary_reference_offset" value="4.0" />
+    <param name="edge/max_boundary_center_reference_distance" value="1.8" />
+    <param name="edge/max_boundary_reference_progress_step" value="7.0" />
+    <param name="edge/max_pair_reference_progress_difference" value="3.0" />
+    <!-- A same-colour virtual centre is recovery only.  When a real blue-
+         yellow midpoint exists, keep the path on that exact centre. -->
+    <param name="edge/boundary_virtual_cost" value="1.20" />
+    <param name="edge/max_boundary_edges_per_cone" value="2" />
+    <!-- Reject diagonal pairs into the next/previous gate. Initial FSSIM value. -->
+    <param name="edge/max_longitudinal_offset" value="1.8" />
+    <param name="edge/min_midpoint_x" value="-1.8" />
+    <param name="edge/max_reference_distance" value="2.8" />
+    <!-- In a hairpin the new branch can be far from the shortened previous
+         path. Keep it as a high-cost alternative instead of deleting it. -->
+    <param name="edge/hard_reference_gate" value="false" />
+    <param name="edge/reference_cost_weight" value="1.0" />
+    <param name="edge/max_edges_per_cone" value="6" />
+    <param name="search/start_min_distance" value="0.2" />
+    <param name="search/start_max_distance" value="$(arg planner_start_max_distance)" />
+    <!-- Only while a recent reference path exists, a hairpin may start from
+         a midpoint nearly beside the car instead of strictly in front. -->
+    <param name="search/allow_reference_lateral_start" value="true" />
+    <param name="search/min_start_forward_x" value="-1.0" />
+    <!-- Real blue-yellow cross-track gates are planned first. Same-colour
+         virtual centres participate only when the real path is unavailable.
+         A valid real path is never replaced merely because it is shorter. -->
+    <param name="recovery/prefer_real_cross_edges" value="true" />
+    <!-- Keep an already observed bend through a brief pairing dropout. A
+         straight historical path does not block discovery of a new bend. -->
+    <param name="recovery/min_reference_hold_length" value="2.0" />
+    <param name="recovery/reference_hold_min_curvature" value="0.08" />
+    <param name="search/min_step_distance" value="0.2" />
+    <!--
+      FSSIM startup can expose only two valid blue-yellow pairs whose
+      midpoints are about one cone interval farther apart.  Treat that as a
+      normal startup step; otherwise the planner waits forever for history.
+    -->
+    <param name="search/max_step_distance" value="$(arg planner_max_step_distance)" />
+    <!-- Allow exactly one longer midpoint jump when one cone pair is missing. -->
+    <param name="search/max_gap_step_distance" value="8.5" />
+    <param name="search/max_gap_bridges" value="1" />
+    <param name="search/max_gap_turn_angle_deg" value="100.0" />
+    <param name="search/gap_bridge_penalty" value="2.0" />
+    <param name="search/gap_confidence_scale" value="0.70" />
+    <param name="search/max_turn_angle_deg" value="78.0" />
+    <param name="search/max_start_heading_deg" value="112.0" />
+    <param name="search/max_reference_distance" value="2.8" />
+    <param name="search/hard_reference_gate" value="false" />
+    <!-- One gap bridge is already limited by max_gap_bridges and angle gates. -->
+    <param name="search/require_reference_for_gap_bridge" value="false" />
+    <param name="search/max_reference_progress_step" value="9.0" />
+    <param name="search/reference_backtrack_tolerance" value="0.40" />
+    <param name="search/beam_width" value="64" />
+    <param name="search/heading_cost_weight" value="1.4" />
+    <param name="search/spacing_cost_weight" value="0.8" />
+    <param name="search/history_cost_weight" value="1.2" />
+    <param name="search/reused_cone_penalty" value="1.0" />
+    <!-- BITFSD-style whole-boundary continuity costs. -->
+    <param name="search/width_change_cost_weight" value="2.0" />
+    <param name="search/boundary_spacing_cost_weight" value="1.2" />
+    <param name="search/expected_boundary_spacing" value="$(arg planner_expected_boundary_spacing)" />
+    <param name="search/max_boundary_step" value="6.5" />
+    <!-- Prefer a long, consistently turning arc.  A direction reversal is
+         much worse than a gradual non-zero corner angle. -->
+    <param name="search/turn_change_cost_weight" value="1.4" />
+    <param name="search/turn_reversal_cost_weight" value="2.5" />
+    <param name="search/cross_track_alignment_cost_weight" value="2.0" />
+    <param name="search/shared_cone_transition_penalty" value="0.20" />
+    <param name="search/disconnected_edge_penalty" value="0.05" />
+    <param name="search/preferred_path_length" value="12.0" />
+    <param name="search/short_path_cost_weight" value="3.0" />
+    <param name="search/progress_reward_weight" value="0.20" />
+    <param name="search/min_midpoints" value="2" />
+    <param name="search/max_midpoints" value="30" />
+    <param name="search/max_path_length" value="24.0" />
+    <param name="history/max_age" value="3.5" />
+    <param name="history/fallback_max_age" value="1.2" />
+    <param name="history/fallback_max_frames" value="15" />
+    <!--
+      Delaunay generates candidates; temporal gating decides whether a newly
+      selected centreline is consistent with the motion-compensated history.
+    -->
+    <param name="temporal/enabled" value="true" />
+    <!-- Near points remain filtered, while the far part adopts the new bend
+         quickly enough to provide steering preview. -->
+    <param name="temporal/new_path_weight" value="0.45" />
+    <param name="temporal/high_curvature_threshold" value="0.35" />
+    <param name="temporal/high_curvature_new_path_weight" value="0.75" />
+    <param name="temporal/corner_exit_new_path_weight" value="0.90" />
+    <param name="temporal/corner_exit_detection_distance" value="2.0" />
+    <param name="temporal/far_new_path_weight" value="0.90" />
+    <param name="temporal/far_blend_start_distance" value="1.0" />
+    <param name="temporal/far_blend_full_distance" value="4.0" />
+    <param name="temporal/compare_distance" value="5.0" />
+    <param name="temporal/min_compare_length" value="1.0" />
+    <param name="temporal/max_mean_deviation" value="1.30" />
+    <param name="temporal/max_near_deviation" value="0.80" />
+    <param name="temporal/near_distance" value="3.0" />
+    <!-- Infer a temporary centre point from one visible boundary. -->
+    <param name="single_side/enabled" value="true" />
+    <param name="single_side/expected_track_width" value="$(arg planner_expected_width)" />
+    <param name="single_side/min_boundary_offset" value="0.50" />
+    <param name="single_side/max_boundary_offset" value="4.0" />
+    <param name="single_side/max_center_reference_distance" value="1.50" />
+    <param name="single_side/max_age" value="1.5" />
+    <param name="single_side/max_frames" value="15" />
+    <param name="smoother/spline_tension" value="0.25" />
+    <!-- Natural cubic interpolation already gives a continuous path.  An
+         extra moving-average pass would shift a 90-degree corner inward. -->
+    <!-- Initial FSSIM value: allow the spline to round a sparse 90-degree
+         midpoint corner while remaining well inside a roughly 3 m track. -->
+    <param name="smoother/max_spline_deviation" value="0.30" />
+    <param name="smoother/smoothing_passes" value="0" />
+    <param name="validator/min_path_points" value="3" />
+    <param name="validator/min_path_length" value="0.8" />
+    <param name="validator/min_forward_progress" value="0.5" />
+    <param name="validator/min_path_confidence" value="0.10" />
+    <param name="validator/max_abs_curvature" value="3.0" />
+  </node>
+
+  <!-- Simulator-only reference generator for the ambiguous skidpad
+       crossover.  It is mutually exclusive with the generic planner so
+       /planning/local_path always has exactly one publisher. -->
+  <node if="$(arg use_skidpad_path_generator)"
+        pkg="fssim_bridge"
+        type="fssim_skidpad_path_node"
+        name="fssim_skidpad_path"
+        output="screen">
+    <param name="odometry_topic" value="/odometry/filtered" />
+    <param name="mission_state_topic" value="/mission/state" />
+    <param name="path_topic" value="/planning/local_path" />
+    <param name="path_status_topic" value="/planning/path_status" />
+    <param name="base_frame" value="fssim/vehicle/base_link" />
+    <param name="publish_rate" value="30.0" />
+    <param name="path_length" value="22.0" />
+    <param name="point_spacing" value="0.20" />
+    <param name="recovery_length" value="3.0" />
+    <!-- FSSIM models/track/skidpad.sdf centre-line geometry. -->
+    <param name="entry_join_x" value="0.0" />
+    <param name="entry_center_y" value="0.0" />
+    <param name="right_center_x" value="0.0" />
+    <param name="right_center_y" value="-9.125" />
+    <param name="left_center_x" value="0.0" />
+    <param name="left_center_y" value="9.125" />
+    <param name="radius" value="9.125" />
+  </node>
+
+  <node if="$(arg use_rviz)"
+        pkg="rviz"
+        type="rviz"
+        name="driverless_fssim_rviz"
+        args="-d $(find fssim_bridge)/config/fssim_bridge.rviz"
+        output="screen" />
+</launch>

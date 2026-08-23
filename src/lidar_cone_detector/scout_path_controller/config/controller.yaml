@@ -1,0 +1,42 @@
+input_path_topic: /planning/local_path
+input_path_status_topic: /planning/path_status
+input_odom_topic: /odom
+use_odometry: false
+output_cmd_topic: /cmd_vel
+output_status_topic: /scout_path_controller/status
+
+mission:
+  use_interface: false
+  stop_topic: /mission/stop
+  speed_limit_topic: /mission/speed_limit
+  timeout: 0.50
+
+control_rate: 20.0
+odometry_timeout: 0.30
+path_timeout: 0.35
+path_freshness_timeout: 0.20
+
+# Initial suggestions; confirm on the actual SCOUT MINI.
+cruise_speed: 0.50
+minimum_corner_speed: 0.20
+degraded_speed_scale: 0.40
+max_linear_speed: 0.80
+max_angular_speed: 0.80
+max_linear_acceleration: 0.40
+max_linear_deceleration: 0.80
+max_angular_acceleration: 1.50
+angular_filter: 0.35
+curvature_for_minimum_speed: 0.90
+
+lookahead_distance: 1.00
+min_lookahead_distance: 0.60
+max_lookahead_distance: 1.60
+lookahead_speed_gain: 0.50
+lookahead_curvature_reduction: 0.35
+lookahead_filter: 0.70
+
+# Only valid while cone messages remain alive and pairing temporarily fails.
+creep:
+  max_distance: 0.80
+  max_time: 2.50
+  path_extension: 0.60
