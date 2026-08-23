@@ -1,0 +1,94 @@
+<!-- 
+  real_car_bringup.launch
+  实车统一启动文件：一条命令启动整个高速避障系统
+  
+  启动管线:
+    1. 雷达驱动 (velodyne_points)
+    2. 定位 (LOAM + EKF + loam_bridge)
+    3. 感知 (YOLO darknet_ros + multi_modal_fusion)
+    4. 规划 (path_generator)
+    5. 模式管理 (mode_manager)
+    6. 控制 (pure_pursuit_controller)
+    7. 数据记录 (data_logger)
+    8. 可视化 (rviz_visualizer + rviz)
+  
+  用法:
+    roslaunch cone_car_core real_car_bringup.launch
+    
+    可选参数:
+      use_yolo:=true/false    是否启动 YOLO (默认 true)
+      use_rviz:=true/false    是否启动 RViz (默认 true)
+      use_velodyne:=true/false 是否启动雷达驱动 (默认 true, 如果雷达已单独启动则设 false)
+      rviz_config:=path       RViz 配置文件路径
+-->
+<launch>
+  <!-- ==================== Launch Arguments ==================== -->
+  <arg name="use_yolo"     default="true" />
+  <arg name="use_rviz"     default="true" />
+  <arg name="use_velodyne" default="true" />
+  <arg name="rviz_config"  default="$(find cone_car_core)/config/cone_car.rviz" />
+  <arg name="use_sim_time" default="false" />
+
+  <!-- 全局参数 -->
+  <param name="/use_sim_time" value="$(arg use_sim_time)" />
+
+  <!-- ==================== 全局参数加载 ==================== -->
+  <rosparam file="$(find cone_car_core)/config/params.yaml" command="load" />
+
+  <!-- ==================== Layer 0: 传感器驱动 ==================== -->
+  <!--
+    注意: 雷达驱动需要根据实际硬件单独启动，例如:
+      roslaunch velodyne_pointcloud <your_driver>.launch
+    或者自行编写硬件接口 launch 文件后在此 include。
+    use_velodyne 参数留作扩展预留。
+  -->
+
+  <!-- ==================== Layer 1: 定位层 ==================== -->
+  <!-- LOAM + EKF + loam_bridge → /localization/vehicle_state (Racing_Loc_Mod) -->
+  <include file="$(find racing_loc_mod)/launch/localization.launch" />
+
+  <!-- ==================== Layer 2: 感知层 ==================== -->
+  <!--
+    注意: YOLO (darknet_ros) 需要在另一个终端单独启动，例如:
+      source ~/1/devel/setup.bash && roslaunch darknet_ros darknet_ros.launch
+    use_yolo 参数留作扩展预留。
+  -->
+
+  <!-- 多模态融合节点: YOLO 2D + LiDAR 3D → 带颜色的 3D 锥桶 -->
+  <node name="multi_modal_fusion" pkg="multi_modal_fusion" type="fusion_node" output="screen">
+    <rosparam command="load" file="$(find multi_modal_fusion)/config/fusion_params.yaml" />
+    <remap from="/fusion/cone_array" to="/perception/cones"/>
+  </node>
+
+  <!-- ==================== Layer 2.5: Stage-2 MVP 影子定位 ==================== -->
+  <!-- cone_scan_matching_lite: 锥桶刚体配准修正 map→odom，影子模式不影响下游 -->
+  <include file="$(find cone_scan_matching_lite)/launch/cone_scan_matching_lite.launch"/>
+
+  <!-- ==================== Layer 3: 规划层 ==================== -->
+  <node name="path_generator_node" pkg="cone_car_core" type="path_generator_node" output="screen">
+  </node>
+
+  <!-- ==================== Layer 4: 模式管理层 ==================== -->
+  <node name="mode_manager_node" pkg="cone_car_core" type="mode_manager_node" output="screen">
+  </node>
+
+  <!-- ==================== Layer 5: 控制层 ==================== -->
+  <node name="pure_pursuit_controller_node" pkg="cone_car_core" type="pure_pursuit_controller_node" output="screen">
+  </node>
+
+  <!-- ==================== Layer 6: 数据记录层 ==================== -->
+  <node name="data_logger_node" pkg="cone_car_core" type="data_logger_node" output="screen">
+  </node>
+
+  <!-- ==================== Layer 7: 可视化层 ==================== -->
+  <node name="rviz_visualizer_node" pkg="cone_car_core" type="rviz_visualizer_node" output="screen">
+  </node>
+
+  <!-- RViz -->
+  <group if="$(arg use_rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" output="screen" required="false" />
+  </group>
+
+  <!-- ==================== 启动完成提示 ==================== -->
+  <!-- 所有节点已启动，通过 rostopic list / rosnode list 检查状态 -->
+</launch>

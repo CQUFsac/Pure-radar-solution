@@ -1,7 +1,39 @@
-.DS_Store
-.claude/
+# Catkin build products
+/build/
+/devel/
+/install/
+/.catkin_tools/
+**/logs/*
+!**/logs/.gitkeep
+**/log/*
+!**/log/.gitkeep
+/.ros/
 
-# Local snapshots and temporary source copies must not enter the catkin workspace.
-backup/
+# Editor and operating-system files
+/.vscode/
+/src/.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local backups and temporary copies
+**/backup/
+/src/backup_*/
 *.bak
 *_before_*
+*.tmp
+*.swp
+*~
+
+# Runtime recordings and logs
+*.bag
+*.bag.active
+*.pcap
+*.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local assistant/editor state
+.claude/

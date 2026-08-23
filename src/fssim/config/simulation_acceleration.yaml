@@ -1,0 +1,13 @@
+simulation_name: "FSSIM acceleration"
+robot_name: gotthard
+kill_after: 6000
+pkg_config_storage: fssim_description
+repetitions:
+  - sensors_config_file: cars/gotthard/config/sensors.yaml
+    track_name: acceleration.sdf
+    autonomous_stack:
+res:
+  checks:
+    is_in_track: false
+launch_file:
+  rosbag_record:

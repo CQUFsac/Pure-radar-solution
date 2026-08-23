@@ -1,0 +1,117 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 10
+      Color: 200; 200; 200
+      Line Style:
+        Width: 0.03
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: base_link
+      Value: true
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/PointCloud2
+      Name: Lidar Cones
+      Enabled: true
+      Topic: /lidar/cones
+      Color Transformer: FlatColor
+      Color: 255; 255; 0
+      Size (Pixels): 8
+      Value: true
+    - Class: rviz/MarkerArray
+      Name: Path Debug Markers
+      Enabled: true
+      Topic: /planning/debug/path_markers
+      Value: true
+    - Class: rviz/Path
+      Name: Local Path
+      Enabled: true
+      Topic: /planning/local_path
+      Color: 0; 255; 0
+      Alpha: 1
+      Line Style: Lines
+      Line Width: 0.1
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Value: true
+    - Class: rviz/Odometry
+      Name: Odometry
+      Enabled: true
+      Topic: /odometry/filtered
+      Arrow:
+        Length: 0.5
+        Width: 0.3
+      Axes:
+        Length: 0.5
+        Radius: 0.05
+      Color: 255; 85; 255
+      Head Length: 0.15
+      Head Width: 0.1
+      Shaft Length: 0.35
+      Shaft Width: 0.05
+      Value: true
+    - Class: rviz/RobotModel
+      Name: Robot Model
+      Enabled: true
+      Value: true
+    - Class: rviz/Map
+      Name: Cone Map
+      Enabled: false
+      Value: false
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: rviz
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 30
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.01
+      Pitch: 0.7854
+      Target Frame: base_link
+      Yaw: 3.14
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 800
+  Width: 1200
+  X: 100
+  Y: 100

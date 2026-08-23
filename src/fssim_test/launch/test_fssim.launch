@@ -1,0 +1,80 @@
+<!--
+  test_fssim.launch
+  集成测试: fssim 仿真 + 路径规划 + 锥桶 SLAM
+
+  使用方法:
+    roslaunch fssim_test test_fssim.launch
+
+  数据流:
+    fssim → /lidar/cones → fssim_bridge → /perception/lidar/cones_raw → local_path_planner
+    fssim → /fssim/state → fssim_odom_bridge → /odometry/filtered + TF(odom→base_link)
+    fssim_bridge → /fssim/cmd → fssim (控制)
+    cone_slam 订阅锥桶 + 里程计 → 发布 TF(map→odom) + 地图
+-->
+<launch>
+  <!-- ==================== 参数 ==================== -->
+  <arg name="robot_name"    default="gotthard" />
+  <arg name="world_name"    default="$(find fssim_gazebo)/worlds/track.world" />
+  <arg name="max_speed"     default="0.15" />
+  <arg name="steering_gain" default="2.0" />
+  <arg name="use_slam"      default="true" />
+
+  <!-- ==================== 1. fssim 仿真器（含自动RES+RViz） ==================== -->
+  <include file="$(find fssim)/launch/auto_fssim.launch" />
+
+  <!-- ==================== 2. 里程计桥接 ==================== -->
+  <node pkg="fssim_test" type="fssim_odom_bridge" name="fssim_odom_bridge" output="screen" />
+
+  <!-- ==================== 3. fssim_bridge（锥桶转发+控制） ==================== -->
+  <node pkg="fssim_bridge" type="fssim_bridge_node" name="fssim_bridge_node" output="screen">
+    <param name="max_speed"        value="$(arg max_speed)" />
+    <param name="stanley_gain"     value="$(arg steering_gain)" />
+    <param name="lookahead"        value="1.5" />
+    <param name="max_steer"        value="0.3" />
+    <param name="steering_smooth"  value="0.3" />
+  </node>
+
+  <!-- ==================== 3.5. 锥桶 Topic 转换 ==================== -->
+  <node pkg="fssim_test" type="cone_topic_converter" name="cone_topic_converter" output="screen" />
+
+  <!-- ==================== 4. 路径规划器（放宽参数适配 fssim） ==================== -->
+  <node pkg="local_path_planner" type="local_path_planner_node" name="local_path_planner" output="screen">
+    <param name="input_topic"       value="/perception/lidar/cones_raw" />
+    <param name="odometry_topic"    value="/odometry/filtered" />
+    <param name="output_topic"      value="/planning/local_path" />
+    <param name="publish_debug"     value="true" />
+    <param name="expected_frame"    value="base_link" />
+    <param name="min_input_cones"   value="2" />
+    <!-- 放宽搜索 -->
+    <param name="search/min_midpoints"          value="1" />
+    <param name="search/max_midpoints"          value="20" />
+    <param name="search/min_step_distance"      value="0.2" />
+    <param name="search/max_step_distance"      value="5.0" />
+    <param name="search/expected_step_distance" value="3.0" />
+    <param name="search/start_min_distance"     value="0.2" />
+    <param name="search/start_max_distance"     value="5.0" />
+    <param name="search/max_turn_angle_deg"     value="70" />
+    <param name="search/max_start_heading_deg"  value="70" />
+    <!-- 放宽 edge -->
+    <param name="edge/min_width"    value="1.0" />
+    <param name="edge/max_width"    value="6.0" />
+    <!-- 放宽 validator -->
+    <param name="validator/min_path_points"     value="3" />
+    <param name="validator/min_path_length"     value="1.0" />
+    <param name="validator/max_abs_curvature"   value="3.0" />
+    <param name="validator/min_forward_progress" value="0.5" />
+    <param name="validator/min_path_confidence" value="0.1" />
+    <!-- 放宽 ROI -->
+    <param name="roi/min_confidence"   value="0.1" />
+  </node>
+
+  <!-- ==================== 5. 锥桶 SLAM（建图定位） ==================== -->
+  <group if="$(arg use_slam)">
+    <include file="$(find cone_slam)/launch/cone_slam.launch">
+      <arg name="master_mode"         value="false" />
+      <arg name="publish_map_odom_tf" value="true" />
+    </include>
+  </group>
+
+  <!-- RViz 已由 auto_fssim.launch 自动启动 -->
+</launch>
